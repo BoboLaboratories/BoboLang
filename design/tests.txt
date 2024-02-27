@@ -1,0 +1,42 @@
+import io.std
+import io.file
+
+module io {
+
+    private var stdout = 0
+
+    fun set(std, fd) {
+        check {
+            std == :stdout -> stdout = fd
+        }
+    }
+
+    fun print(x) {
+
+        for (i = 0; i < 10; i++) {
+
+        }
+
+        for (elem : list) {
+
+        }
+
+        for ( <var> : <expr>) {
+
+        }
+        for (elem : range(1, 10)) {
+
+        }
+    }
+
+
+
+}
+
+- dati
+- funzioni
+- script root level
+- visibilità
+    - private: nel file
+    - local: nella directory
+    - public (default): ovunque
