@@ -1,4 +1,4 @@
-override CFLAGS = -ansi -Werror
+override CFLAGS = -ansi -Werror -Ishared -Lbin/lib
 override CC = gcc
 
 # $@ target
@@ -7,16 +7,26 @@ override CC = gcc
 
 SHARED = shared/*.h
 
-ALL = compiler vm sandbox
-ALL_BINS = $(addprefix bin/,$(ALL))
+MAIN = compiler vm
+LIBS = console
 
-all: $(ALL_BINS)
+MAIN_BINARIES = $(addprefix bin/,$(MAIN))
+LIBS_BINARIES = $(addsuffix $(addprefix bin/lib/,$(LIBS)),.o)
+
+all: $(MAIN_BINARIES)
 
 bin/sandbox: sandbox/*.c | makedir
 	$(CC) $(CFLAGS) $< -o $@
 
 bin/%: %/*.c %/*.h $(SHARED) | makedir
 	$(CC) $(CFLAGS) $(filter %.c,$^) -o $@
+
+bin/compiler: compiler/*.c compiler/*.h console
+	$(CC) $(CFLAGS) $(filter %.c,$^) -o $@ -l:console
+
+# Directive for making any library
+%: shared/impl/%.c shared/lib/%.h | makedir
+	$(CC) $(CFLAGS) -c -o bin/lib/$@ $<
 
 # Simple clean directive
 clean:
@@ -26,6 +36,6 @@ clean:
 
 # Creates the output directory
 makedir:
-	mkdir -p bin
+	mkdir -p bin/lib
 
 .SILENT: clean makedir

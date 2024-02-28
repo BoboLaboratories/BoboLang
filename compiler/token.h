@@ -1,46 +1,56 @@
-#ifndef BOBO_COMPILER_TAG_H
-#define BOBO_COMPILER_TAG_H
+#ifndef BOBO_LANG_COMPILER_TOKEN_H
+#define BOBO_LANG_COMPILER_TOKEN_H
 
-typedef struct _token {
-    const int tag;
-    const char *lexeme;
+typedef struct {
+    int tag;
+    char *lexeme;
 } token;
 
-// constant tokens mapped to extended ASCII
-const token LPT     = { '(', "(" };
-const token RPT     = { ')', ")" };
-const token LPG     = { '{', "{" };
-const token RPG     = { '}', "}" };
-const token DOT     = { '.', "." };
-const token COMMA   = { ',', "," };
-const token PLUS    = { '+', "+" };
-const token MINUS   = { '-', "-" };
-const token MUL     = { '*', "*" };
-const token DIV     = { '/', "/" };
-const token ASSIGN  = { '=', "=" };
+#define TOK_PRINT(tok)  {                                                       \
+                            if (tok.tag == EOF) {                               \
+                                print(N, "<EOF>\n");                            \
+                            } else if (tok.tag != ERR) {                        \
+                                print(N, "<%d, %s>\n", tok.tag, tok.lexeme);    \
+                            }                                                   \
+                        }
 
-// constant tokens non-mapped to extended ASCII
-const token ARROW   = { 256, "->"       };
-const token NOT     = { 257, "!"        };
-const token AND     = { 258, "&&"       };
-const token OR      = { 259, "||"       };
-const token LT      = { 260, "<"        };
-const token GT      = { 261, ">"        };
-const token LE      = { 262, "<="       };
-const token GE      = { 263, ">="       };
-const token EQ      = { 264, "=="       };
-const token NEQ     = { 265, "!="       };
-const token IMPORT  = { 266, "import"   };
-const token MODULE  = { 267, "module"   };
-const token FUN     = { 268, "fun"      };
-const token PRIVATE = { 269, "private"  };
-const token PUBLIC  = { 270, "public"   };
-const token CONST   = { 271, "const"    };
-const token VAR     = { 272, "var"      };
-const token CHECK   = { 273, "check"    };
+/* constant tokens mapped to extended ASCII */
+#define LPT     ((token) { '(', "(" })
+#define RPT     ((token) { ')', ")" })
+#define LPG     ((token) { '{', "{" })
+#define RPG     ((token) { '}', "}" })
+#define NOT     ((token) { '!', "!" })
+#define LT      ((token) { '<', "<" })
+#define GT      ((token) { '>', ">" })
+#define DOT     ((token) { '.', "." })
+#define COMMA   ((token) { ',', "," })
+#define PLUS    ((token) { '+', "+" })
+#define MINUS   ((token) { '-', "-" })
+#define MUL     ((token) { '*', "*" })
+#define DIV     ((token) { '/', "/" })
+#define ASSIGN  ((token) { '=', "=" })
 
-// special cases
-const token EOF     = { -1, "" };
-#define ID  274
+/* constant tokens non-mapped to extended ASCII */
+#define ARROW   ((token) { 256, "->"       })
+#define AND     ((token) { 257, "&&"       })
+#define OR      ((token) { 258, "||"       })
+#define LE      ((token) { 259, "<="       })
+#define GE      ((token) { 260, ">="       })
+#define EQ      ((token) { 261, "=="       })
+#define NEQ     ((token) { 262, "!="       })
+#define IMPORT  ((token) { 263, "import"   })
+#define MODULE  ((token) { 264, "module"   })
+#define FUN     ((token) { 265, "fun"      })
+#define PRIVATE ((token) { 266, "private"  })
+#define PUBLIC  ((token) { 267, "public"   })
+#define CONST   ((token) { 268, "const"    })
+#define VAR     ((token) { 269, "var"      })
+#define CHECK   ((token) { 270, "check"    })
+
+/* special tokens */
+#define ERR     (-2)
+#define TOK_EOF ((token) { EOF, "" })
+#define TOK_ERR ((token) { ERR, "" })
+#define ID      (271)
 
 #endif
