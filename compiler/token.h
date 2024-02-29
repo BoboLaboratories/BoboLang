@@ -15,42 +15,74 @@ typedef struct {
                         }
 
 /* constant tokens mapped to extended ASCII */
-#define LPT     ((token) { '(', "(" })
-#define RPT     ((token) { ')', ")" })
-#define LPG     ((token) { '{', "{" })
-#define RPG     ((token) { '}', "}" })
-#define NOT     ((token) { '!', "!" })
-#define LT      ((token) { '<', "<" })
-#define GT      ((token) { '>', ">" })
-#define DOT     ((token) { '.', "." })
-#define COMMA   ((token) { ',', "," })
-#define PLUS    ((token) { '+', "+" })
-#define MINUS   ((token) { '-', "-" })
-#define MUL     ((token) { '*', "*" })
-#define DIV     ((token) { '/', "/" })
-#define ASSIGN  ((token) { '=', "=" })
+#define LPT    '('
+#define RPT    ')'
+#define LPG    '{'
+#define RPG    '}'
+#define NOT    '!'
+#define LT     '<'
+#define GT     '>'
+#define DOT    '.'
+#define COMMA  ','
+#define PLUS   '+'
+#define MINUS  '-'
+#define MUL    '*'
+#define DIV    '/'
+#define ASSIGN '='
+
+#define TOK_LPT     ((token) { LPT,    "(" })
+#define TOK_RPT     ((token) { RPT,    ")" })
+#define TOK_LPG     ((token) { LPG,    "{" })
+#define TOK_RPG     ((token) { RPG,    "}" })
+#define TOK_NOT     ((token) { NOT,    "!" })
+#define TOK_LT      ((token) { LT,     "<" })
+#define TOK_GT      ((token) { GT,     ">" })
+#define TOK_DOT     ((token) { DOT,    "." })
+#define TOK_COMMA   ((token) { COMMA,  "," })
+#define TOK_PLUS    ((token) { PLUS,   "+" })
+#define TOK_MINUS   ((token) { MINUS,  "-" })
+#define TOK_MUL     ((token) { MUL,    "*" })
+#define TOK_DIV     ((token) { DIV,    "/" })
+#define TOK_ASSIGN  ((token) { ASSIGN, "=" })
 
 /* constant tokens non-mapped to extended ASCII */
-#define ARROW   ((token) { 256, "->"       })
-#define AND     ((token) { 257, "&&"       })
-#define OR      ((token) { 258, "||"       })
-#define LE      ((token) { 259, "<="       })
-#define GE      ((token) { 260, ">="       })
-#define EQ      ((token) { 261, "=="       })
-#define NEQ     ((token) { 262, "!="       })
-#define IMPORT  ((token) { 263, "import"   })
-#define MODULE  ((token) { 264, "module"   })
-#define FUN     ((token) { 265, "fun"      })
-#define PRIVATE ((token) { 266, "private"  })
-#define PUBLIC  ((token) { 267, "public"   })
-#define CONST   ((token) { 268, "const"    })
-#define VAR     ((token) { 269, "var"      })
-#define CHECK   ((token) { 270, "check"    })
+#define ARROW   256
+#define AND     257
+#define OR      258
+#define LE      259
+#define GE      260
+#define EQ      261
+#define NEQ     262
+#define IMPORT  263
+#define MODULE  264
+#define FUN     265
+#define PRIVATE 266
+#define PUBLIC  267
+#define CONST   268
+#define VAR     269
+#define CHECK   270
+
+#define TOK_ARROW   ((token) { ARROW,   "->"       })
+#define TOK_AND     ((token) { AND,     "&&"       })
+#define TOK_OR      ((token) { OR,      "||"       })
+#define TOK_LE      ((token) { LE,      "<="       })
+#define TOK_GE      ((token) { GE,      ">="       })
+#define TOK_EQ      ((token) { EQ,      "=="       })
+#define TOK_NEQ     ((token) { NEQ,     "!="       })
+#define TOK_IMPORT  ((token) { IMPORT,  "import"   })
+#define TOK_MODULE  ((token) { MODULE,  "module"   })
+#define TOK_FUN     ((token) { FUN,     "fun"      })
+#define TOK_PRIVATE ((token) { PRIVATE, "private"  })
+#define TOK_PUBLIC  ((token) { PUBLIC,  "public"   })
+#define TOK_CONST   ((token) { CONST,   "const"    })
+#define TOK_VAR     ((token) { VAR,     "var"      })
+#define TOK_CHECK   ((token) { CHECK,   "check"    })
 
 /* special tokens */
+#define ID      271
 #define ERR     (-2)
-#define TOK_EOF ((token) { EOF, "" })
 #define TOK_ERR ((token) { ERR, "" })
-#define ID      (271)
+#define TOK_EOF ((token) { EOF, "" })
+
 
 #endif

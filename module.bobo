@@ -1,0 +1,19 @@
+import a.b.c
+
+module io {
+
+    const g0 = 0
+
+    fun move(const x, y, offset = 1) {
+        println("Ciao " + y + " sei un figo!")
+    }
+
+    native fun println()
+
+    private native fun println()
+
+}
+
+#constants
+"Ciao"
+" sei un figo!"

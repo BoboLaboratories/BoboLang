@@ -24,45 +24,45 @@ token scan(FILE *fptr) {
 
     switch (peek) {
     case '(':
-        return reset(LPT);
+        return reset(TOK_LPT);
     case ')':
-        return reset(RPT);
+        return reset(TOK_RPT);
     case '{':
-        return reset(LPG);
+        return reset(TOK_LPG);
     case '}':
-        return reset(RPG);
+        return reset(TOK_RPG);
     case '.':
-        return reset(DOT);
+        return reset(TOK_DOT);
     case '*':
-        return reset(MUL);
+        return reset(TOK_MUL);
     case '+':
-        return reset(PLUS);
+        return reset(TOK_PLUS);
     case '/':
-        return reset(DIV);
+        return reset(TOK_DIV);
     case ',':
-        return reset(COMMA);
+        return reset(TOK_COMMA);
     case '<':
-        return ((peek = fgetc(fptr)) == '=') ? reset(LE) : LT;
+        return ((peek = fgetc(fptr)) == '=') ? reset(TOK_LE) : TOK_LT;
     case '>':
-        return ((peek = fgetc(fptr)) == '=') ? reset(GE) : GT;
+        return ((peek = fgetc(fptr)) == '=') ? reset(TOK_GE) : TOK_GT;
     case '!':
-        return ((peek = fgetc(fptr)) == '=') ? reset(NEQ) : NOT;
+        return ((peek = fgetc(fptr)) == '=') ? reset(TOK_NEQ) : TOK_NOT;
     case '=':
-        return ((peek = fgetc(fptr)) == '=') ? reset(EQ) : ASSIGN;
+        return ((peek = fgetc(fptr)) == '=') ? reset(TOK_EQ) : TOK_ASSIGN;
     case '-':
-        return ((peek = fgetc(fptr)) == '>') ? reset(ARROW) : MINUS;
+        return ((peek = fgetc(fptr)) == '>') ? reset(TOK_ARROW) : TOK_MINUS;
     case '&':
         if ((peek = fgetc(fptr)) != '&') {
             print(E, "illegal symbol &%c at line %d\n", peek, line);
             return TOK_ERR;
         }
-        return reset(AND);
+        return reset(TOK_AND);
     case '|':
         if ((peek = fgetc(fptr)) != '|') {
             print(E, "illegal symbol |%c at line %d\n", peek, line);
             return TOK_ERR;
         }
-        return reset(OR);
+        return reset(TOK_OR);
     case EOF:
         return TOK_EOF;
     default:
@@ -91,21 +91,21 @@ token scan(FILE *fptr) {
             } else {
                 token ret;
                 if (strcmp(lexeme, "import") == 0) {
-                    ret = IMPORT;
+                    ret = TOK_IMPORT;
                 } else if (strcmp(lexeme, "module") == 0) {
-                    ret = MODULE;
+                    ret = TOK_MODULE;
                 } else if (strcmp(lexeme, "fun") == 0) {
-                    ret = FUN;
+                    ret = TOK_FUN;
                 } else if (strcmp(lexeme, "private") == 0) {
-                    ret = PRIVATE;
+                    ret = TOK_PRIVATE;
                 } else if (strcmp(lexeme, "public") == 0) {
-                    ret = PUBLIC;
+                    ret = TOK_PUBLIC;
                 } else if (strcmp(lexeme, "const") == 0) {
-                    ret = CONST;
+                    ret = TOK_CONST;
                 } else if (strcmp(lexeme, "var") == 0) {
-                    ret = VAR;
+                    ret = TOK_VAR;
                 } else if (strcmp(lexeme, "check") == 0) {
-                    ret = CHECK;
+                    ret = TOK_CHECK;
                 } else {
                     ret = (token) {ID, lexeme};
                 }
@@ -114,7 +114,7 @@ token scan(FILE *fptr) {
                     free(lexeme);
                 }
 
-                return ret;
+                return reset(ret);
             }
         }
         return TOK_EOF;
