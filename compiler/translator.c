@@ -40,9 +40,6 @@ static void varmod() {
     case CONST:
         match(CONST);
         break;
-    case VAR:
-        match(VAR);
-        break;
     case ID:
         break;
     default:
@@ -54,7 +51,6 @@ static void varmod() {
 static void var() {
     switch (look.tag) {
     case CONST:
-    case VAR:
     case ID:
         varmod();
         match(ID);
@@ -65,7 +61,8 @@ static void var() {
     }
 }
 
-static void assignmentp() {
+/*
+ static void assignmentp() {
     switch (look.tag) {
     case COMMA:
         match(COMMA);
@@ -81,15 +78,15 @@ static void assignmentp() {
         exit(EXIT_FAILURE);
     }
 }
+ */
 
 static void assignment() {
     switch (look.tag) {
     case CONST:
-    case VAR:
     case ID:
-        varmod();
-        match(ID);
-        assignmentp();
+        var();
+        match(ASSIGN);
+        expr();
         break;
     default:
         print(E, "assignment");
@@ -97,27 +94,9 @@ static void assignment() {
     }
 }
 
-static void funmod() {
-    switch (look.tag) {
-    case PRIVATE:
-        match(PRIVATE);
-        break;
-    case PUBLIC:
-        match(PUBLIC);
-        break;
-    case FUN:
-        break;
-    default:
-        print(E, "funmod");
-        exit(EXIT_FAILURE);
-    }
-}
-
 static void stat() {
-
     switch (look.tag) {
     case CONST:
-    case VAR:
     case ID:
         assignment();
         break;
@@ -130,7 +109,6 @@ static void stat() {
 static void statlist() {
     switch (look.tag) {
     case CONST:
-    case VAR:
     case ID:
         stat();
         statlist();
@@ -183,7 +161,6 @@ static void arglistp() {
 static void arglist() {
     switch (look.tag) {
     case CONST:
-    case VAR:
     case ID:
         var();
         arglistp();
@@ -196,23 +173,74 @@ static void arglist() {
     }
 }
 
-static void fun() {
+static void funbody() {
     switch (look.tag) {
-    case PRIVATE:
-    case PUBLIC:
-    case FUN:
-        funmod();
-        match(FUN);
-        match(ID);
-        match(LPT);
-        arglist();
-        match(RPT);
+    case LPG:
         match(LPG);
         statlist();
         match(RPG);
         break;
     default:
-        print(E, "fun");
+        print(E, "funbody");
+        exit(EXIT_FAILURE);
+    }
+}
+
+static void funsig() {
+    switch (look.tag) {
+    case FUN:
+        match(FUN);
+        match(ID);
+        match(LPT);
+        arglist();
+        match(RPT);
+        break;
+    default:
+        print(E, "funsig");
+        exit(EXIT_FAILURE);
+    }
+}
+
+static void modulefunp() {
+    switch (look.tag) {
+    case NATIVE:
+        match(NATIVE);
+        funsig();
+        break;
+    case FUN:
+        funsig();
+        funbody();
+        break;
+    default:
+        print(E, "modulefunp");
+        exit(EXIT_FAILURE);
+    }
+}
+
+static void funmod() {
+    switch (look.tag) {
+    case PRIVATE:
+        match(PRIVATE);
+        break;
+    case NATIVE:
+    case FUN:
+        break;
+    default:
+        print(E, "funmod");
+        exit(EXIT_FAILURE);
+    }
+}
+
+static void modulefun() {
+    switch (look.tag) {
+    case PRIVATE:
+    case NATIVE:
+    case FUN:
+        funmod();
+        modulefunp();
+        break;
+    default:
+        print(E, "modulefun");
         exit(EXIT_FAILURE);
     }
 }
@@ -220,15 +248,15 @@ static void fun() {
 static void modulep() {
     switch (look.tag) {
     case CONST:
-    case VAR:
     case ID:
         assignment();
         modulep();
         break;
     case PRIVATE:
-    case PUBLIC:
+    case NATIVE:
     case FUN:
-        fun();
+        modulefun();
+        modulep();
         break;
     case RPG:
         break;
@@ -239,7 +267,7 @@ static void modulep() {
 }
 
 static void scriptp() {
-
+    /* TODO */
 }
 
 static void filep() {
@@ -252,9 +280,7 @@ static void filep() {
         match(RPG);
         break;
     case PRIVATE:
-    case PUBLIC:
     case CONST:
-    case VAR:
     case FUN:
     case ID:
         scriptp();
@@ -272,12 +298,10 @@ static void importidp() {
         match(ID);
         importidp();
         break;
-    case IMPORT:
     case PRIVATE:
-    case PUBLIC:
-    case CONST:
-    case VAR:
     case MODULE:
+    case IMPORT:
+    case CONST:
     case FUN:
     case ID:
         break;
@@ -296,10 +320,8 @@ static void importlist() {
         importlist();
         break;
     case PRIVATE:
-    case PUBLIC:
-    case CONST:
-    case VAR:
     case MODULE:
+    case CONST:
     case FUN:
     case ID:
         break;
@@ -310,8 +332,21 @@ static void importlist() {
 }
 
 static void file() {
-    importlist();
-    filep();
+    switch (look.tag) {
+    case PRIVATE:
+    case IMPORT:
+    case MODULE:
+    case CONST:
+    case FUN:
+    case ID:
+        importlist();
+        filep();
+        match(EOF);
+        break;
+    default:
+        print(E, "file");
+        exit(EXIT_FAILURE);
+    }
 }
 
 void translate(FILE *f) {

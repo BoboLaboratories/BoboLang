@@ -98,13 +98,11 @@ token scan(FILE *fptr) {
                     ret = TOK_FUN;
                 } else if (strcmp(lexeme, "private") == 0) {
                     ret = TOK_PRIVATE;
-                } else if (strcmp(lexeme, "public") == 0) {
-                    ret = TOK_PUBLIC;
+                } else if (strcmp(lexeme, "native") == 0) {
+                    ret = TOK_NATIVE;
                 } else if (strcmp(lexeme, "const") == 0) {
                     ret = TOK_CONST;
-                } else if (strcmp(lexeme, "var") == 0) {
-                    ret = TOK_VAR;
-                } else if (strcmp(lexeme, "check") == 0) {
+                }  else if (strcmp(lexeme, "check") == 0) {
                     ret = TOK_CHECK;
                 } else {
                     ret = (token) {ID, lexeme};

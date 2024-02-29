@@ -2,18 +2,17 @@ import a.b.c
 
 module io {
 
-    const g0 = 0
+    const g0 = __get_so_pipe();
+    asd = 1
 
-    fun move(const x, y, offset = 1) {
-        println("Ciao " + y + " sei un figo!")
+    fun move(const x, y, offset = o) {
+
     }
+
+    native fun __get_so_pipe()
 
     native fun println()
 
     private native fun println()
 
 }
-
-#constants
-"Ciao"
-" sei un figo!"

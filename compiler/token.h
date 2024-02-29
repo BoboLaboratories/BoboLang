@@ -57,10 +57,9 @@ typedef struct {
 #define MODULE  264
 #define FUN     265
 #define PRIVATE 266
-#define PUBLIC  267
+#define NATIVE  267
 #define CONST   268
-#define VAR     269
-#define CHECK   270
+#define CHECK   269
 
 #define TOK_ARROW   ((token) { ARROW,   "->"       })
 #define TOK_AND     ((token) { AND,     "&&"       })
@@ -73,13 +72,12 @@ typedef struct {
 #define TOK_MODULE  ((token) { MODULE,  "module"   })
 #define TOK_FUN     ((token) { FUN,     "fun"      })
 #define TOK_PRIVATE ((token) { PRIVATE, "private"  })
-#define TOK_PUBLIC  ((token) { PUBLIC,  "public"   })
+#define TOK_NATIVE  ((token) { NATIVE,  "native"   })
 #define TOK_CONST   ((token) { CONST,   "const"    })
-#define TOK_VAR     ((token) { VAR,     "var"      })
 #define TOK_CHECK   ((token) { CHECK,   "check"    })
 
 /* special tokens */
-#define ID      271
+#define ID      270
 #define ERR     (-2)
 #define TOK_ERR ((token) { ERR, "" })
 #define TOK_EOF ((token) { EOF, "" })
