@@ -24,6 +24,34 @@ static void match(int tag) {
     }
 }
 
+static void qidp();
+static void qid();
+static void expr();
+static void invokearglistp();
+static void invokearglist();
+static void invokeargs();
+static void qidexprp();
+static void varmod();
+static void statassignp();
+static void qidinnerstatp();
+static void innerstat();
+static void outerstat();
+static void statlistp();
+static void statlist();
+static void funarg();
+static void fundefarglistp();
+static void funarglistp();
+static void funarglist();
+static void funsig();
+static void modulefunp();
+static void funmod();
+static void modulefun();
+static void modulep();
+static void scriptp();
+static void filep();
+static void importlist();
+static void file();
+
 static void qidp() {
     switch (look.tag) {
     case DOT:
@@ -63,11 +91,23 @@ static void qid() {
     }
 }
 
+static void expr() {
+    switch (look.tag) {
+    case ID:
+        qid();
+        qidexprp();
+        break;
+    default:
+        print(E, "expr");
+        exit(EXIT_FAILURE);
+    }
+}
+
 static void invokearglistp() {
     switch (look.tag) {
     case COMMA:
         match(COMMA);
-        qid();
+        expr();
         invokearglistp();
         break;
     case RPT:
@@ -81,7 +121,7 @@ static void invokearglistp() {
 static void invokearglist() {
     switch (look.tag) {
     case ID:
-        qid();
+        expr();
         invokearglistp();
         break;
     case RPT:
@@ -121,18 +161,6 @@ static void qidexprp() {
         break;
     default:
         print(E, "qidexprp");
-        exit(EXIT_FAILURE);
-    }
-}
-
-static void expr() {
-    switch (look.tag) {
-    case ID:
-        qid();
-        qidexprp();
-        break;
-    default:
-        print(E, "expr");
         exit(EXIT_FAILURE);
     }
 }
@@ -198,7 +226,7 @@ static void outerstat() {
     case CONST:
     case ID:
         varmod();
-        qid();
+        match(ID);
         statassignp();
         break;
     default:
