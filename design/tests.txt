@@ -8,6 +8,7 @@ module io {
     fun set(std, fd) {
         check {
             std == :stdout -> stdout = fd
+
         }
     }
 

@@ -11,7 +11,7 @@ MAIN = compiler vm
 LIBS = console
 
 MAIN_BINARIES = $(addprefix bin/,$(MAIN))
-LIBS_BINARIES = $(addsuffix $(addprefix bin/lib/,$(LIBS)),.o)
+LIBS_BINARIES = $(addprefix bin/lib/,$(LIBS))
 
 all: $(MAIN_BINARIES)
 

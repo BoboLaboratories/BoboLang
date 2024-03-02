@@ -24,10 +24,112 @@ static void match(int tag) {
     }
 }
 
-static void expr() {
+static void qidp() {
+    switch (look.tag) {
+    case DOT:
+        match(DOT);
+        match(ID);
+        qidp();
+        break;
+    case PRIVATE:
+    case ASSIGN:
+    case IMPORT:
+    case MODULE:
+    case NATIVE:
+    case COMMA:
+    case CONST:
+    case EOF:
+    case FUN:
+    case LPT:
+    case RPT:
+    case RPG:
+    case ID:
+        break;
+    default:
+        print(E, "qidp");
+        exit(EXIT_FAILURE);
+    }
+}
+
+static void qid() {
     switch (look.tag) {
     case ID:
         match(ID);
+        qidp();
+        break;
+    default:
+        print(E, "qid");
+        exit(EXIT_FAILURE);
+    }
+}
+
+static void invokearglistp() {
+    switch (look.tag) {
+    case COMMA:
+        match(COMMA);
+        qid();
+        invokearglistp();
+        break;
+    case RPT:
+        break;
+    default:
+        print(E, "invokearglistp");
+        exit(EXIT_FAILURE);
+    }
+}
+
+static void invokearglist() {
+    switch (look.tag) {
+    case ID:
+        qid();
+        invokearglistp();
+        break;
+    case RPT:
+        break;
+    default:
+        print(E, "invokearglist");
+        exit(EXIT_FAILURE);
+    }
+}
+
+static void invokeargs() {
+    switch (look.tag) {
+    case LPT:
+        match(LPT);
+        invokearglist();
+        match(RPT);
+        break;
+    default:
+        print(E, "invokeargs");
+        exit(EXIT_FAILURE);
+    }
+}
+
+static void qidexprp() {
+    switch (look.tag) {
+    case LPT:
+        invokeargs();
+        break;
+    case PRIVATE:
+    case NATIVE:
+    case COMMA:
+    case CONST:
+    case FUN:
+    case RPG:
+    case RPT:
+    case ID:
+        break;
+    default:
+        print(E, "qidexprp");
+        exit(EXIT_FAILURE);
+    }
+}
+
+static void expr() {
+    switch (look.tag) {
+    case ID:
+        qid();
+        qidexprp();
         break;
     default:
         print(E, "expr");
@@ -48,72 +150,84 @@ static void varmod() {
     }
 }
 
-static void var() {
+static void statassignp() {
     switch (look.tag) {
-    case CONST:
-    case ID:
-        varmod();
-        match(ID);
-        break;
-    default:
-        print(E, "var");
-        exit(EXIT_FAILURE);
-    }
-}
-
-/*
- static void assignmentp() {
-    switch (look.tag) {
-    case COMMA:
-        match(COMMA);
-        match(ID);
-        assignmentp();
-        break;
     case ASSIGN:
         match(ASSIGN);
         expr();
         break;
     default:
-        print(E, "assignmentp");
-        exit(EXIT_FAILURE);
-    }
-}
- */
-
-static void assignment() {
-    switch (look.tag) {
-    case CONST:
-    case ID:
-        var();
-        match(ASSIGN);
-        expr();
-        break;
-    default:
-        print(E, "assignment");
+        print(E, "statassignp");
         exit(EXIT_FAILURE);
     }
 }
 
-static void stat() {
+static void qidinnerstatp() {
+    switch (look.tag) {
+    case ASSIGN:
+        statassignp();
+        break;
+    case LPT:
+        invokeargs();
+        break;
+    default:
+        print(E, "qidinnerstatp");
+        exit(EXIT_FAILURE);
+    }
+}
+
+static void innerstat() {
+    switch (look.tag) {
+    case CONST:
+        match(CONST);
+        qid();
+        statassignp();
+        break;
+    case ID:
+        qid();
+        qidinnerstatp();
+        break;
+    default:
+        print(E, "innerstat");
+        exit(EXIT_FAILURE);
+    }
+}
+
+static void outerstat() {
     switch (look.tag) {
     case CONST:
     case ID:
-        assignment();
+        varmod();
+        qid();
+        statassignp();
         break;
     default:
-        print(E, "stat");
+        print(E, "outerstat");
+        exit(EXIT_FAILURE);
+    }
+}
+
+static void statlistp() {
+    switch (look.tag) {
+    case CONST:
+    case ID:
+        innerstat();
+        statlistp();
+        break;
+    case RPG:
+        break;
+    default:
+        print(E, "statlistp");
         exit(EXIT_FAILURE);
     }
 }
 
 static void statlist() {
     switch (look.tag) {
-    case CONST:
-    case ID:
-        stat();
-        statlist();
-        break;
-    case RPG:
+    case LPG:
+        match(LPG);
+        statlistp();
+        match(RPG);
         break;
     default:
         print(E, "statlist");
@@ -121,67 +235,67 @@ static void statlist() {
     }
 }
 
-static void defarglistp() {
+static void funarg() {
     switch (look.tag) {
-    case COMMA:
-        match(COMMA);
-        var();
-        match(ASSIGN);
-        expr();
-        defarglistp();
-        break;
-    case RPT:
+    case CONST:
+    case ID:
+        varmod();
+        match(ID);
         break;
     default:
-        print(E, "defarglistp");
+        print(E, "funarg");
         exit(EXIT_FAILURE);
     }
 }
 
-static void arglistp() {
+static void fundefarglistp() {
     switch (look.tag) {
     case COMMA:
         match(COMMA);
-        var();
-        arglistp();
+        funarg();
+        match(ASSIGN);
+        expr();
+        fundefarglistp();
+        break;
+    case RPT:
+        break;
+    default:
+        print(E, "fundefarglistp");
+        exit(EXIT_FAILURE);
+    }
+}
+
+static void funarglistp() {
+    switch (look.tag) {
+    case COMMA:
+        match(COMMA);
+        funarg();
+        funarglistp();
         break;
     case ASSIGN:
         match(ASSIGN);
         expr();
-        defarglistp();
+        fundefarglistp();
         break;
     case RPT:
         break;
     default:
-        print(E, "arglistp");
+        print(E, "funarglistp");
         exit(EXIT_FAILURE);
     }
 }
 
-static void arglist() {
+static void funarglist() {
     switch (look.tag) {
     case CONST:
     case ID:
-        var();
-        arglistp();
+        funarg();
+        funarglistp();
         break;
     case RPT:
         break;
     default:
-        print(E, "arglist");
-        exit(EXIT_FAILURE);
-    }
-}
-
-static void funbody() {
-    switch (look.tag) {
-    case LPG:
-        match(LPG);
-        statlist();
-        match(RPG);
-        break;
-    default:
-        print(E, "funbody");
+        print(E, "funarglist");
         exit(EXIT_FAILURE);
     }
 }
@@ -192,7 +306,7 @@ static void funsig() {
         match(FUN);
         match(ID);
         match(LPT);
-        arglist();
+        funarglist();
         match(RPT);
         break;
     default:
@@ -209,7 +323,7 @@ static void modulefunp() {
         break;
     case FUN:
         funsig();
-        funbody();
+        statlist();
         break;
     default:
         print(E, "modulefunp");
@@ -249,7 +363,7 @@ static void modulep() {
     switch (look.tag) {
     case CONST:
     case ID:
-        assignment();
+        outerstat();
         modulep();
         break;
     case PRIVATE:
@@ -281,6 +395,7 @@ static void filep() {
         break;
     case PRIVATE:
     case CONST:
+    case EOF:
     case FUN:
     case ID:
         scriptp();
@@ -291,37 +406,17 @@ static void filep() {
     }
 }
 
-static void importidp() {
-    switch (look.tag) {
-    case DOT:
-        match(DOT);
-        match(ID);
-        importidp();
-        break;
-    case PRIVATE:
-    case MODULE:
-    case IMPORT:
-    case CONST:
-    case FUN:
-    case ID:
-        break;
-    default:
-        print(E, "importidp");
-        exit(EXIT_FAILURE);
-    }
-}
-
 static void importlist() {
     switch (look.tag) {
     case IMPORT:
         match(IMPORT);
-        match(ID);
-        importidp();
+        qid();
         importlist();
         break;
     case PRIVATE:
     case MODULE:
     case CONST:
+    case EOF:
     case FUN:
     case ID:
         break;
@@ -337,6 +432,7 @@ static void file() {
     case IMPORT:
     case MODULE:
     case CONST:
+    case EOF:
     case FUN:
     case ID:
         importlist();
