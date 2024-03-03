@@ -1,5 +1,6 @@
 import a.b.c
 import io.net
+import math.pow
 
 const g0 = __get_so_pipe()
 
@@ -12,4 +13,3 @@ fun move(const x, y = std.default(), offset = o) {
 native fun __get_so_pipe()
 
 private native fun println()
-

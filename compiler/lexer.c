@@ -4,117 +4,141 @@
 #include <malloc.h>
 
 #include "token.h"
+#include "lexer.h"
 #include "lib/console.h"
 
-static int peek = ' ';
-static int line = 1;
-
-static token reset(token tok) {
-    peek = ' ';
-    return tok;
+lexer init_lexer(FILE *fptr) {
+    return (lexer) {
+        .fptr = fptr,
+        .peek = ' ',
+        .line = 1
+    };
 }
 
-token scan(FILE *fptr) {
-    while (peek == ' ' || peek == '\t' || peek == '\n' || peek == '\r') {
-        if (peek == '\n') {
-            line++;
+static token make_token(lexer *lexer, int tag, char *lexeme, int reset);
+
+static int is_whitespace(lexer *lexer) {
+    return lexer->peek == ' '
+        || lexer->peek == '\t'
+        || lexer->peek == '\n'
+        || lexer->peek == '\r';
+}
+
+#define next()      (lexer->peek = fgetc(lexer->fptr))
+#define mktok(tok)  make_token(lexer, tok, 0)
+#define mktokr(tok) make_token(lexer, tok, 1)
+
+token scan(lexer *lexer) {
+    while (is_whitespace(lexer)) {
+        if (lexer->peek == '\n') {
+            lexer->line++;
         }
-        peek = fgetc(fptr);
+        next();
     }
 
-    switch (peek) {
+    switch (lexer->peek) {
     case '(':
-        return reset(TOK_LPT);
+        return mktokr(TOK_LPT);
     case ')':
-        return reset(TOK_RPT);
+        return mktokr(TOK_RPT);
     case '{':
-        return reset(TOK_LPG);
+        return mktokr(TOK_LPG);
     case '}':
-        return reset(TOK_RPG);
+        return mktokr(TOK_RPG);
     case '.':
-        return reset(TOK_DOT);
+        return mktokr(TOK_DOT);
     case '*':
-        return reset(TOK_MUL);
+        return mktokr(TOK_MUL);
     case '+':
-        return reset(TOK_PLUS);
+        return mktokr(TOK_PLUS);
     case '/':
-        return reset(TOK_DIV);
+        return mktokr(TOK_DIV);
     case ',':
-        return reset(TOK_COMMA);
+        return mktokr(TOK_COMMA);
     case '<':
-        return ((peek = fgetc(fptr)) == '=') ? reset(TOK_LE) : TOK_LT;
+        return (next() == '=') ? mktokr(TOK_LE) : mktok(TOK_LT);
     case '>':
-        return ((peek = fgetc(fptr)) == '=') ? reset(TOK_GE) : TOK_GT;
+        return (next() == '=') ? mktokr(TOK_GE) : mktok(TOK_GT);
     case '!':
-        return ((peek = fgetc(fptr)) == '=') ? reset(TOK_NEQ) : TOK_NOT;
+        return (next() == '=') ? mktokr(TOK_NEQ) : mktok(TOK_NOT);
     case '=':
-        return ((peek = fgetc(fptr)) == '=') ? reset(TOK_EQ) : TOK_ASSIGN;
+        return (next() == '=') ? mktokr(TOK_EQ) : mktok(TOK_ASSIGN);
     case '-':
-        return ((peek = fgetc(fptr)) == '>') ? reset(TOK_ARROW) : TOK_MINUS;
+        return (next() == '>') ? mktokr(TOK_ARROW) : mktok(TOK_MINUS);
     case '&':
-        if ((peek = fgetc(fptr)) != '&') {
-            print(E, "illegal symbol &%c at line %d\n", peek, line);
-            return TOK_ERR;
+        if (next() != '&') {
+            print(E, "illegal symbol &%c at line %d\n", lexer->peek, lexer->line);
+            return mktok(TOK_ERR);
         }
-        return reset(TOK_AND);
+        return mktokr(TOK_AND);
     case '|':
-        if ((peek = fgetc(fptr)) != '|') {
-            print(E, "illegal symbol |%c at line %d\n", peek, line);
-            return TOK_ERR;
+        if (next() != '|') {
+            print(E, "illegal symbol |%c at line %d\n", lexer->peek, lexer->line);
+            return mktok(TOK_ERR);
         }
-        return reset(TOK_OR);
+        return mktokr(TOK_OR);
     case EOF:
-        return TOK_EOF;
+        return mktok(TOK_EOF);
     default:
-        if (isalpha(peek) || peek == '_') {
-            int underscore_only = peek == '_';
-            long start = ftell(fptr) - 1;
+        if (isalpha(lexer->peek) || lexer->peek == '_') {
+            int underscore_only = lexer->peek == '_';
+            long start = ftell(lexer->fptr) - 1;
             do {
-                underscore_only &= peek == '_';
-                peek = fgetc(fptr);
-            } while (isalnum(peek) || peek == '_');
+                underscore_only &= lexer->peek == '_';
+                next();
+            } while (isalnum(lexer->peek) || lexer->peek == '_');
 
-            long end = ftell(fptr);
-            if (peek != EOF) {
+            long end = ftell(lexer->fptr);
+            if (lexer->peek != EOF) {
                 end--;
             }
             long len = end - start;
             char *lexeme = malloc(len + 1);
 
-            fseek(fptr, start, SEEK_SET);
-            fread(lexeme, len, 1, fptr);
+            fseek(lexer->fptr, start, SEEK_SET);
+            fread(lexeme, len, 1, lexer->fptr);
             *(lexeme + len) = '\0';
 
             if (underscore_only) {
-                print(E, "illegal symbol %s at line %d\n", lexeme, line);
-                return TOK_ERR;
+                print(E, "illegal symbol %s at line %d\n", lexeme, lexer->line);
+                return mktok(TOK_ERR);
             } else {
                 token ret;
                 if (strcmp(lexeme, "import") == 0) {
-                    ret = TOK_IMPORT;
-                } else if (strcmp(lexeme, "module") == 0) {
-                    ret = TOK_MODULE;
+                    ret = mktokr(TOK_IMPORT);
                 } else if (strcmp(lexeme, "fun") == 0) {
-                    ret = TOK_FUN;
+                    ret = mktokr(TOK_FUN);
                 } else if (strcmp(lexeme, "private") == 0) {
-                    ret = TOK_PRIVATE;
+                    ret = mktokr(TOK_PRIVATE);
                 } else if (strcmp(lexeme, "native") == 0) {
-                    ret = TOK_NATIVE;
+                    ret = mktokr(TOK_NATIVE);
                 } else if (strcmp(lexeme, "const") == 0) {
-                    ret = TOK_CONST;
-                }  else if (strcmp(lexeme, "check") == 0) {
-                    ret = TOK_CHECK;
+                    ret = mktokr(TOK_CONST);
+                } else if (strcmp(lexeme, "check") == 0) {
+                    ret = mktokr(TOK_CHECK);
                 } else {
-                    ret = (token) {ID, lexeme};
+                    ret = mktokr(TOK_ID);
                 }
 
                 if (ret.tag != ID) {
                     free(lexeme);
                 }
 
-                return reset(ret);
+
+                return ret;
             }
         }
-        return TOK_EOF;
+        return mktok(TOK_ERR);
     }
+}
+
+static token make_token(lexer *lexer, int tag, char *lexeme, int reset) {
+    if (reset) {
+        lexer->peek = ' ';
+    }
+    return (token) {
+            .tag = tag,
+            .lexeme = lexeme,
+            .line = lexer->line,
+    };
 }

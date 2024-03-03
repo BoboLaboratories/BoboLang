@@ -3,15 +3,32 @@
 
 #include <stdio.h>
 
+#include "lexer.h"
+
+#define CONSTANT_STRING 0
+
 typedef struct {
-    int import_count;
+    unsigned char type;
+    union {
+        char *str;
+    } value;
+} constant;
+
+typedef struct {
+    unsigned int import_count;
     char **imports;
-} AST_importlist;
+    unsigned int constant_count;
+    constant *constants;
+} bobo_bin;
 
 typedef struct {
-    AST_importlist *importlist;
-} AST_file;
+    lexer *lexer;
+    token *prev;
+    token *look;
+    bobo_bin *bin;
+} translator;
 
-void translate(FILE *fptr);
+translator init_translator(lexer *lexer);
+bobo_bin *translate(translator *translator);
 
 #endif

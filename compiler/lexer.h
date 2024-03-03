@@ -5,6 +5,14 @@
 
 #include "token.h"
 
-token scan(FILE *fptr);
+typedef struct {
+    FILE *fptr;
+    char peek;
+    int line;
+} lexer;
+
+lexer init_lexer(FILE *fptr);
+
+token scan(lexer *lexer);
 
 #endif
