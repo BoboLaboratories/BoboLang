@@ -3,6 +3,15 @@
 
 #include <stdio.h>
 
+typedef struct {
+    int import_count;
+    char **imports;
+} AST_importlist;
+
+typedef struct {
+    AST_importlist *importlist;
+} AST_file;
+
 void translate(FILE *fptr);
 
 #endif

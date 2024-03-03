@@ -1,4 +1,6 @@
 #include <stdlib.h>
+#include <string.h>
+#include <malloc.h>
 
 #include "lexer.h"
 #include "translator.h"
@@ -24,40 +26,16 @@ static void match(int tag) {
     }
 }
 
-static void qidp();
-static void qid();
-static void expr();
-static void invokearglistp();
-static void invokearglist();
-static void invokeargs();
 static void qidexprp();
-static void varmod();
-static void statassignp();
-static void qidinnerstatp();
-static void innerstat();
-static void outerstat();
-static void statlistp();
-static void statlist();
-static void funarg();
-static void fundefarglistp();
-static void funarglistp();
-static void funarglist();
-static void funsig();
-static void modulefunp();
-static void funmod();
-static void modulefun();
-static void modulep();
-static void scriptp();
-static void filep();
-static void importlist();
-static void file();
 
-static void qidp() {
+static char *qidp(char *id) {
     switch (look.tag) {
     case DOT:
         match(DOT);
+        strcat(id, ".");
+        strcat(id, look.lexeme);
         match(ID);
-        qidp();
+        qidp(id);
         break;
     case PRIVATE:
     case ASSIGN:
@@ -79,12 +57,14 @@ static void qidp() {
     }
 }
 
-static void qid() {
+static char *qid() {
     switch (look.tag) {
-    case ID:
+    case ID: {
+        char *id = look.lexeme;
         match(ID);
-        qidp();
-        break;
+        qidp(id);
+        return id;
+    }
     default:
         print(E, "qid");
         exit(EXIT_FAILURE);
@@ -154,6 +134,7 @@ static void qidexprp() {
     case NATIVE:
     case COMMA:
     case CONST:
+    case EOF:
     case FUN:
     case RPG:
     case RPT:
@@ -165,72 +146,35 @@ static void qidexprp() {
     }
 }
 
-static void varmod() {
-    switch (look.tag) {
-    case CONST:
-        match(CONST);
-        break;
-    case ID:
-        break;
-    default:
-        print(E, "varmod");
-        exit(EXIT_FAILURE);
-    }
-}
-
-static void statassignp() {
+static void qidstatp() {
     switch (look.tag) {
     case ASSIGN:
         match(ASSIGN);
         expr();
         break;
-    default:
-        print(E, "statassignp");
-        exit(EXIT_FAILURE);
-    }
-}
-
-static void qidinnerstatp() {
-    switch (look.tag) {
-    case ASSIGN:
-        statassignp();
-        break;
     case LPT:
         invokeargs();
         break;
     default:
-        print(E, "qidinnerstatp");
+        print(E, "qidstatp");
         exit(EXIT_FAILURE);
     }
 }
 
-static void innerstat() {
+static void stat() {
     switch (look.tag) {
     case CONST:
         match(CONST);
-        qid();
-        statassignp();
-        break;
-    case ID:
-        qid();
-        qidinnerstatp();
-        break;
-    default:
-        print(E, "innerstat");
-        exit(EXIT_FAILURE);
-    }
-}
-
-static void outerstat() {
-    switch (look.tag) {
-    case CONST:
-    case ID:
-        varmod();
         match(ID);
-        statassignp();
+        match(ASSIGN);
+        expr();
+        break;
+    case ID:
+        qid();
+        qidstatp();
         break;
     default:
-        print(E, "outerstat");
+        print(E, "stat");
         exit(EXIT_FAILURE);
     }
 }
@@ -239,7 +183,7 @@ static void statlistp() {
     switch (look.tag) {
     case CONST:
     case ID:
-        innerstat();
+        stat();
         statlistp();
         break;
     case RPG:
@@ -266,8 +210,10 @@ static void statlist() {
 static void funarg() {
     switch (look.tag) {
     case CONST:
+        match(CONST);
+        match(ID);
+        break;
     case ID:
-        varmod();
         match(ID);
         break;
     default:
@@ -343,90 +289,62 @@ static void funsig() {
     }
 }
 
-static void modulefunp() {
+static void fundecl() {
+    TOK_PRINT(look);
     switch (look.tag) {
-    case NATIVE:
-        match(NATIVE);
-        funsig();
-        break;
     case FUN:
         funsig();
         statlist();
         break;
     default:
-        print(E, "modulefunp");
+        print(E, "fundecl");
         exit(EXIT_FAILURE);
     }
 }
 
-static void funmod() {
-    switch (look.tag) {
-    case PRIVATE:
-        match(PRIVATE);
-        break;
-    case NATIVE:
-    case FUN:
-        break;
-    default:
-        print(E, "funmod");
-        exit(EXIT_FAILURE);
-    }
-}
-
-static void modulefun() {
-    switch (look.tag) {
-    case PRIVATE:
-    case NATIVE:
-    case FUN:
-        funmod();
-        modulefunp();
-        break;
-    default:
-        print(E, "modulefun");
-        exit(EXIT_FAILURE);
-    }
-}
-
-static void modulep() {
+static void privatefilep() {
     switch (look.tag) {
     case CONST:
-    case ID:
-        outerstat();
-        modulep();
+        match(CONST);
+        match(ID);
+        match(ASSIGN);
+        expr();
         break;
-    case PRIVATE:
     case NATIVE:
-    case FUN:
-        modulefun();
-        modulep();
+        match(NATIVE);
+        funsig();
         break;
-    case RPG:
+    case FUN:
+        fundecl();
         break;
     default:
-        print(E, "modulep");
+        print(E, "privatefilep");
         exit(EXIT_FAILURE);
     }
-}
-
-static void scriptp() {
-    /* TODO */
 }
 
 static void filep() {
     switch (look.tag) {
-    case MODULE:
-        match(MODULE);
-        match(ID);
-        match(LPG);
-        modulep();
-        match(RPG);
-        break;
     case PRIVATE:
-    case CONST:
-    case EOF:
+        match(PRIVATE);
+        privatefilep();
+        filep();
+        break;
+    case NATIVE:
+        match(NATIVE);
+        funsig();
+        filep();
+        break;
     case FUN:
+        fundecl();
+        filep();
+        break;
+    case CONST:
     case ID:
-        scriptp();
+        stat();
+        filep();
+        break;
+    case EOF:
         break;
     default:
         print(E, "filep");
@@ -434,20 +352,29 @@ static void filep() {
     }
 }
 
-static void importlist() {
+static AST_importlist *importlist(AST_importlist *list) {
+    if (list == NULL) {
+        list = malloc(sizeof(AST_importlist));
+        list->import_count = 0;
+        list->imports = NULL;
+    }
+
     switch (look.tag) {
     case IMPORT:
         match(IMPORT);
-        qid();
-        importlist();
+        char *import = qid();
+        list->import_count += 1;
+        list->imports = reallocarray(list->imports, list->import_count, sizeof(char *));
+        list->imports[list->import_count - 1] = import;
+        importlist(list);
         break;
     case PRIVATE:
-    case MODULE:
+    case NATIVE:
     case CONST:
     case EOF:
     case FUN:
     case ID:
-        break;
+        return list;
     default:
         print(E, "importlist");
         exit(EXIT_FAILURE);
@@ -455,17 +382,26 @@ static void importlist() {
 }
 
 static void file() {
+    AST_file file;
     switch (look.tag) {
     case PRIVATE:
+    case NATIVE:
     case IMPORT:
-    case MODULE:
     case CONST:
     case EOF:
     case FUN:
     case ID:
-        importlist();
+        file.importlist = importlist(NULL);
         filep();
         match(EOF);
+        {
+            print(D, "Files to be imported:\n");
+            int i = 0;
+            while (i < file.importlist->import_count) {
+                print(D, "\t%s\n", file.importlist->imports[i]);
+                i++;
+            }
+        }
         break;
     default:
         print(E, "file");

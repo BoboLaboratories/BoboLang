@@ -1,17 +1,15 @@
 import a.b.c
+import io.net
 
-module io {
+const g0 = __get_so_pipe()
 
-    const g0 = __get_so_pipe()
-
-    fun move(const x, y = std.default(), offset = o) {
-        const a = net.send(a(b(c(d()))), b)
-        const b = daje
-        a = b
-    }
-
-    native fun __get_so_pipe()
-
-    private native fun println()
-
+fun move(const x, y = std.default(), offset = o) {
+    const a = net.send(a(net.a.b(c(d()))), b)
+    const b = daje
+    a = b
 }
+
+native fun __get_so_pipe()
+
+private native fun println()
+
