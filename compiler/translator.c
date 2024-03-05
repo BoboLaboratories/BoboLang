@@ -399,8 +399,18 @@ translator init_translator(lexer *lexer) {
     t.prev = malloc(sizeof(token));
     t.look = malloc(sizeof(token));
     t.bin = malloc(sizeof(bobo_bin));
+
+    t.bin->magic = MAGIC;
+
+    t.bin->minor_version = 1;
+    t.bin->major_version = 0;
+
     t.bin->imports = NULL;
     t.bin->import_count = 0;
+
+    t.bin->constants = NULL;
+    t.bin->constant_count = 0;
+
     return t;
 }
 

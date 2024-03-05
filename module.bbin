@@ -1,0 +1,42 @@
+0000 0xB0B0B0B0     // magic
+0004 0              // major version
+0006 1              // minor version
+
+
+0008 2              // constant count
+000A INT 1
+000F STR "nyum"
+
+
+000B 4              // function count
+    LOAD 0
+    CALL io.net.version
+    STORE 4
+
+
+
+
+#CONST_ADDR
+     Hello World!
+
+#FUN_ADRR
+
+
+
+const g0 = __get_so_pipe()
+
+fun move(const x, y = std.default(), offset = o) {
+    const c = io.net.version(x)
+    const a = net.send(a(net.a.b(c(d()))), b)
+    const b = daje
+    a = b
+    http_send() // -> io.net.http_send()
+}
+
+fun send(y) {
+
+}
+
+native fun __get_so_pipe()
+
+private native fun println()

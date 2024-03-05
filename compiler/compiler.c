@@ -2,12 +2,14 @@
 
 #include "lib/console.h"
 #include "translator.h"
+#include "disassembler.h"
 
 static void compile(char *path) {
     FILE *fptr = fopen(path, "r");
     lexer lexer = init_lexer(fptr);
     translator translator = init_translator(&lexer);
     bobo_bin *bin = translate(&translator);
+    disassemble(bin);
 
     int i;
     for (i = 0; i < bin->import_count; i++) {

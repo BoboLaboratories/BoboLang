@@ -5,9 +5,26 @@ import math.pow
 const g0 = __get_so_pipe()
 
 fun move(const x, y = std.default(), offset = o) {
-    const a = net.send(a(net.a.b(c(d()))), b)
-    const b = daje
+    var a = 1
     a = b
+
+    http_send() // -> io.net.http_send()
+    check {
+        a == b -> {
+            y = 0
+        }
+    }
+}
+
+b = 7
+
+fun main() {
+    const a = 1
+    send(a)
+}
+
+fun send(y) {
+    y = 1
 }
 
 native fun __get_so_pipe()
