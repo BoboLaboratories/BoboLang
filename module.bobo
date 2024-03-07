@@ -4,29 +4,21 @@ import math.pow
 
 const g0 = __get_so_pipe()
 
-fun move(const x, y = std.default(), offset = o) {
-    var a = 1
+private fun move(const x, y = std.default(), offset = o) {
+    var a = j
     a = b
 
-    http_send() // -> io.net.http_send()
-    check {
-        a == b -> {
-            y = 0
-        }
-    }
+    http_send()
 }
 
-b = 7
+b = e
 
-fun main() {
-    const a = 1
-    send(a)
+native fun main(x)
+
+private fun send(a, b, c, d = r, k = f) {
+    y = t
 }
 
-fun send(y) {
-    y = 1
-}
+native fun __get_so_pipe(t)
 
-native fun __get_so_pipe()
-
-private native fun println()
+private native fun println(x, y = t)

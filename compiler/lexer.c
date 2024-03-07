@@ -7,26 +7,20 @@
 #include "lexer.h"
 #include "lib/console.h"
 
-lexer init_lexer(FILE *fptr) {
-    return (lexer) {
-        .fptr = fptr,
-        .peek = ' ',
-        .line = 1
-    };
-}
-
+static int is_whitespace(lexer *lexer);
 static token make_token(lexer *lexer, int tag, char *lexeme, int reset);
-
-static int is_whitespace(lexer *lexer) {
-    return lexer->peek == ' '
-        || lexer->peek == '\t'
-        || lexer->peek == '\n'
-        || lexer->peek == '\r';
-}
 
 #define next()      (lexer->peek = fgetc(lexer->fptr))
 #define mktok(tok)  make_token(lexer, tok, 0)
 #define mktokr(tok) make_token(lexer, tok, 1)
+
+lexer *init_lexer(FILE *fptr) {
+    lexer *lex = malloc(sizeof(lexer));
+    lex->fptr = fptr;
+    lex->peek = ' ';
+    lex->line = 1;
+    return lex;
+}
 
 token scan(lexer *lexer) {
     while (is_whitespace(lexer)) {
@@ -114,6 +108,8 @@ token scan(lexer *lexer) {
                     ret = mktokr(TOK_NATIVE);
                 } else if (strcmp(lexeme, "const") == 0) {
                     ret = mktokr(TOK_CONST);
+                } else if (strcmp(lexeme, "var") == 0) {
+                    ret = mktokr(TOK_VAR);
                 } else if (strcmp(lexeme, "check") == 0) {
                     ret = mktokr(TOK_CHECK);
                 } else {
@@ -124,12 +120,18 @@ token scan(lexer *lexer) {
                     free(lexeme);
                 }
 
-
                 return ret;
             }
         }
         return mktok(TOK_ERR);
     }
+}
+
+static int is_whitespace(lexer *lexer) {
+    return lexer->peek == ' '
+           || lexer->peek == '\t'
+           || lexer->peek == '\n'
+           || lexer->peek == '\r';
 }
 
 static token make_token(lexer *lexer, int tag, char *lexeme, int reset) {

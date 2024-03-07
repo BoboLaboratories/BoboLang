@@ -60,7 +60,8 @@ typedef struct {
 #define PRIVATE 265
 #define NATIVE  266
 #define CONST   267
-#define CHECK   268
+#define VAR     268
+#define CHECK   269
 
 #define TOK_ARROW   ARROW,   "->"
 #define TOK_AND     AND,     "&&"
@@ -74,10 +75,11 @@ typedef struct {
 #define TOK_PRIVATE PRIVATE, "private"
 #define TOK_NATIVE  NATIVE,  "native"
 #define TOK_CONST   CONST,   "const"
+#define TOK_VAR     VAR,     "var"
 #define TOK_CHECK   CHECK,   "check"
 
 /* special tokens */
-#define ID      269
+#define ID      270
 #define TOK_ID  ID, lexeme
 
 #define ERR     (-2)

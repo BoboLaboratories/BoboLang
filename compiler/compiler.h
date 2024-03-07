@@ -1,6 +1,7 @@
 #ifndef BOBO_LANG_COMPILER_H
 #define BOBO_LANG_COMPILER_H
 
-
+#define BOBO_LANG_MAJOR 0
+#define BOBO_LANG_MINOR 1
 
 #endif

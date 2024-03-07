@@ -9,13 +9,30 @@
 #define CONSTANT_STRING 0
 
 typedef struct {
-    lexer *lexer;
+    /* Imports */
+    unsigned int import_count;
+    char **imports;
+
+
+} aux;
+
+typedef struct {
+    char *lexeme;
+    u_int8_t type;
+    union {
+
+    };
+} symbol;
+
+typedef struct {
+    aux *aux;
     token *prev;
-    token *look;
+    token *curr;
+    lexer *lexer;
     bobo_bin *bin;
 } translator;
 
-translator init_translator(lexer *lexer);
+translator *init_translator(lexer *lexer);
 bobo_bin *translate(translator *translator);
 
 #endif

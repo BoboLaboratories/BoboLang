@@ -7,7 +7,7 @@ override CC = gcc
 
 SHARED = shared/*.h
 
-MAIN = compiler vm
+MAIN = compiler vm sandbox
 LIBS = console
 
 MAIN_BINARIES = $(addprefix bin/,$(MAIN))

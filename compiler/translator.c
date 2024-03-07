@@ -2,33 +2,43 @@
 #include <string.h>
 #include <malloc.h>
 
-#include "token.h"
 #include "lexer.h"
+#include "compiler.h"
 #include "translator.h"
 #include "lib/console.h"
 
+#define dynamic_add(dest, count, type, val)             \
+        count++;                                        \
+        dest = reallocarray(dest, count, sizeof(type)); \
+        dest[count - 1] = val;
+
+#define function_add(fun) dynamic_add(t->bin->functions, t->bin->function_count, function, fun)
+
+static void qidexprp(translator *t);
+
 static void move(translator *t) {
-    memcpy(t->prev, t->look, sizeof(token));
-    *t->look = scan(t->lexer);
-    TOK_PRINT(t->look);
+    /* if (token_lexeme_needs_freeing(t->prev)) {
+        free(t->prev->lexeme);
+    }*/
+    memcpy(t->prev, t->curr, sizeof(token));
+    *t->curr = scan(t->lexer);
+    TOK_PRINT(t->curr);
 }
 
 static void match(translator *t, int tag) {
-    if (t->look->tag == tag) {
-        if (t->look->tag != EOF) {
+    if (t->curr->tag == tag) {
+        if (t->curr->tag != EOF) {
             move(t);
         }
     } else {
-        print(E, "unexpected token, expected %d\n", tag);
-        TOK_PRINT(t->look);
+        print(E, "--- unexpected token, expected %d\n", tag);
+        TOK_PRINT(t->curr);
         print(E, "---");
     }
 }
 
-static void qidexprp(translator *t);
-
 static char *qidp(translator *t, char *id) {
-    switch (t->look->tag) {
+    switch (t->curr->tag) {
     case DOT:
         match(t, DOT);
         strcat(id, ".");
@@ -48,6 +58,7 @@ static char *qidp(translator *t, char *id) {
     case LPT:
     case RPT:
     case RPG:
+    case VAR:
     case ID:
         return id;
     default:
@@ -57,7 +68,7 @@ static char *qidp(translator *t, char *id) {
 }
 
 static char *qid(translator *t) {
-    switch (t->look->tag) {
+    switch (t->curr->tag) {
     case ID:
         match(t, ID);
         char *id = t->prev->lexeme;
@@ -69,7 +80,7 @@ static char *qid(translator *t) {
 }
 
 static void expr(translator *t) {
-    switch (t->look->tag) {
+    switch (t->curr->tag) {
     case ID:
         qid(t);
         qidexprp(t);
@@ -81,7 +92,7 @@ static void expr(translator *t) {
 }
 
 static void invokearglistp(translator *t) {
-    switch (t->look->tag) {
+    switch (t->curr->tag) {
     case COMMA:
         match(t, COMMA);
         expr(t);
@@ -96,7 +107,7 @@ static void invokearglistp(translator *t) {
 }
 
 static void invokearglist(translator *t) {
-    switch (t->look->tag) {
+    switch (t->curr->tag) {
     case ID:
         expr(t);
         invokearglistp(t);
@@ -110,7 +121,7 @@ static void invokearglist(translator *t) {
 }
 
 static void invokeargs(translator *t) {
-    switch (t->look->tag) {
+    switch (t->curr->tag) {
     case LPT:
         match(t, LPT);
         invokearglist(t);
@@ -123,7 +134,7 @@ static void invokeargs(translator *t) {
 }
 
 static void qidexprp(translator *t) {
-    switch (t->look->tag) {
+    switch (t->curr->tag) {
     case LPT:
         invokeargs(t);
         break;
@@ -135,6 +146,7 @@ static void qidexprp(translator *t) {
     case FUN:
     case RPG:
     case RPT:
+    case VAR:
     case ID:
         break;
     default:
@@ -143,11 +155,22 @@ static void qidexprp(translator *t) {
     }
 }
 
-static void qidstatp(translator *t) {
-    switch (t->look->tag) {
+static void assign(translator *t) {
+    switch (t->curr->tag) {
     case ASSIGN:
         match(t, ASSIGN);
         expr(t);
+        break;
+    default:
+        print(E, "assign");
+        exit(EXIT_FAILURE);
+    }
+}
+
+static void qidstatp(translator *t) {
+    switch (t->curr->tag) {
+    case ASSIGN:
+        assign(t);
         break;
     case LPT:
         invokeargs(t);
@@ -158,13 +181,29 @@ static void qidstatp(translator *t) {
     }
 }
 
-static void stat(translator *t) {
-    switch (t->look->tag) {
+static void statvardecl(translator *t) {
+    switch (t->curr->tag) {
     case CONST:
         match(t, CONST);
         match(t, ID);
-        match(t, ASSIGN);
-        expr(t);
+        assign(t);
+        break;
+    case VAR:
+        match(t, VAR);
+        match(t, ID);
+        assign(t);
+        break;
+    default:
+        print(E, "statvardecl");
+        exit(EXIT_FAILURE);
+    }
+}
+
+static void stat(translator *t) {
+    switch (t->curr->tag) {
+    case CONST:
+    case VAR:
+        statvardecl(t);
         break;
     case ID:
         qid(t);
@@ -177,8 +216,9 @@ static void stat(translator *t) {
 }
 
 static void statlistp(translator *t) {
-    switch (t->look->tag) {
+    switch (t->curr->tag) {
     case CONST:
+    case VAR:
     case ID:
         stat(t);
         statlistp(t);
@@ -192,7 +232,7 @@ static void statlistp(translator *t) {
 }
 
 static void statlist(translator *t) {
-    switch (t->look->tag) {
+    switch (t->curr->tag) {
     case LPG:
         match(t, LPG);
         statlistp(t);
@@ -205,7 +245,7 @@ static void statlist(translator *t) {
 }
 
 static void funarg(translator *t) {
-    switch (t->look->tag) {
+    switch (t->curr->tag) {
     case CONST:
         match(t, CONST);
         match(t, ID);
@@ -219,16 +259,17 @@ static void funarg(translator *t) {
     }
 }
 
-static void fundefarglistp(translator *t) {
-    switch (t->look->tag) {
+static void fundefarglistp(translator *t, function *fun) {
+    switch (t->curr->tag) {
     case COMMA:
+        fun->max_args++;
         match(t, COMMA);
         funarg(t);
-        match(t, ASSIGN);
-        expr(t);
-        fundefarglistp(t);
+        assign(t);
+        fundefarglistp(t, fun);
         break;
     case RPT:
+        fun->max_args += fun->min_args;
         break;
     default:
         print(E, "fundefarglistp");
@@ -236,19 +277,22 @@ static void fundefarglistp(translator *t) {
     }
 }
 
-static void funarglistp(translator *t) {
-    switch (t->look->tag) {
+static void funarglistp(translator *t, function *fun) {
+    switch (t->curr->tag) {
     case COMMA:
+        fun->min_args++;
         match(t, COMMA);
         funarg(t);
-        funarglistp(t);
+        funarglistp(t, fun);
         break;
     case ASSIGN:
-        match(t, ASSIGN);
-        expr(t);
-        fundefarglistp(t);
+        fun->max_args++;
+        assign(t);
+        fundefarglistp(t, fun);
         break;
     case RPT:
+        fun->min_args++;
+        fun->max_args += fun->min_args;
         break;
     default:
         print(E, "funarglistp");
@@ -256,12 +300,12 @@ static void funarglistp(translator *t) {
     }
 }
 
-static void funarglist(translator *t) {
-    switch (t->look->tag) {
+static void funarglist(translator *t, function *fun) {
+    switch (t->curr->tag) {
     case CONST:
     case ID:
         funarg(t);
-        funarglistp(t);
+        funarglistp(t, fun);
         break;
     case RPT:
         break;
@@ -271,48 +315,71 @@ static void funarglist(translator *t) {
     }
 }
 
-static void funsig(translator *t) {
-    switch (t->look->tag) {
-    case FUN:
+static function *funsig(translator *t) {
+    switch (t->curr->tag) {
+    case FUN: {
         match(t, FUN);
         match(t, ID);
+        function *fun = malloc(sizeof(function));
+        fun->name = t->prev->lexeme;
+        fun->mod = FUN_MOD_BASE;
+        fun->min_args = fun->max_args = 0;
         match(t, LPT);
-        funarglist(t);
+        funarglist(t, fun);
         match(t, RPT);
-        break;
+        return fun;
+    }
     default:
         print(E, "funsig");
         exit(EXIT_FAILURE);
     }
 }
 
-static void fundecl(translator *t) {
-    switch (t->look->tag) {
-    case FUN:
-        funsig(t);
+static function *fundef(translator *t) {
+    switch (t->curr->tag) {
+    case FUN: {
+        function *fun = funsig(t);
         statlist(t);
-        break;
+        return fun;
+    }
     default:
-        print(E, "fundecl");
+        print(E, "fundef");
+        exit(EXIT_FAILURE);
+    }
+}
+
+static function *nativefundef(translator *t) {
+    switch (t->curr->tag) {
+    case NATIVE: {
+        match(t, NATIVE);
+        function *fun = funsig(t);
+        SET_BIT(fun->mod, FUN_MOD_NATIVE);
+        return fun;
+    }
+    default:
+        print(E, "nativefundef");
         exit(EXIT_FAILURE);
     }
 }
 
 static void privatefilep(translator *t) {
-    switch (t->look->tag) {
+    switch (t->curr->tag) {
     case CONST:
-        match(t, CONST);
-        match(t, ID);
-        match(t, ASSIGN);
-        expr(t);
+    case VAR:
+        statvardecl(t);
         break;
-    case NATIVE:
-        match(t, NATIVE);
-        funsig(t);
+    case NATIVE: {
+        function *fun = nativefundef(t);
+        SET_BIT(fun->mod, FUN_MOD_PRIVATE);
+        function_add(fun);
         break;
-    case FUN:
-        fundecl(t);
+    }
+    case FUN: {
+        function *fun = fundef(t);
+        SET_BIT(fun->mod, FUN_MOD_PRIVATE);
+        function_add(fun);
         break;
+    }
     default:
         print(E, "privatefilep");
         exit(EXIT_FAILURE);
@@ -320,22 +387,26 @@ static void privatefilep(translator *t) {
 }
 
 static void filep(translator *t) {
-    switch (t->look->tag) {
+    switch (t->curr->tag) {
     case PRIVATE:
         match(t, PRIVATE);
         privatefilep(t);
         filep(t);
         break;
-    case NATIVE:
-        match(t, NATIVE);
-        funsig(t);
+    case NATIVE: {
+        function *fun = nativefundef(t);
+        function_add(fun);
         filep(t);
         break;
-    case FUN:
-        fundecl(t);
+    }
+    case FUN: {
+        function *fun = fundef(t);
+        function_add(fun);
         filep(t);
         break;
+    }
     case CONST:
+    case VAR:
     case ID:
         stat(t);
         filep(t);
@@ -349,14 +420,14 @@ static void filep(translator *t) {
 }
 
 static void importlist(translator *t) {
-    switch (t->look->tag) {
+    switch (t->curr->tag) {
     case IMPORT: {
         match(t, IMPORT);
         char *id = qid(t);
 
-        t->bin->import_count++;
-        t->bin->imports = reallocarray(t->bin->imports, t->bin->import_count, sizeof(char *));
-        t->bin->imports[t->bin->import_count - 1] = id;
+        t->aux->import_count++;
+        t->aux->imports = reallocarray(t->aux->imports, t->aux->import_count, sizeof(char *));
+        t->aux->imports[t->aux->import_count - 1] = id;
 
         importlist(t);
         break;
@@ -366,6 +437,7 @@ static void importlist(translator *t) {
     case CONST:
     case EOF:
     case FUN:
+    case VAR:
     case ID:
         break;
     default:
@@ -375,13 +447,14 @@ static void importlist(translator *t) {
 }
 
 static void file(translator *t) {
-    switch (t->look->tag) {
+    switch (t->curr->tag) {
     case PRIVATE:
     case NATIVE:
     case IMPORT:
     case CONST:
     case EOF:
     case FUN:
+    case VAR:
     case ID:
         importlist(t);
         filep(t);
@@ -393,29 +466,43 @@ static void file(translator *t) {
     }
 }
 
-translator init_translator(lexer *lexer) {
-    translator t;
-    t.lexer = lexer;
-    t.prev = malloc(sizeof(token));
-    t.look = malloc(sizeof(token));
-    t.bin = malloc(sizeof(bobo_bin));
 
-    t.bin->magic = MAGIC;
+translator *init_translator(lexer *lexer) {
+    translator *t = malloc(sizeof(translator));
 
-    t.bin->minor_version = 1;
-    t.bin->major_version = 0;
+    t->lexer = lexer;
+    t->prev = malloc(sizeof(token));
+    t->curr = malloc(sizeof(token));
 
-    t.bin->imports = NULL;
-    t.bin->import_count = 0;
+    t->bin = malloc(sizeof(bobo_bin));
 
-    t.bin->constants = NULL;
-    t.bin->constant_count = 0;
+    t->bin->magic = BOBO_LANG_MAGIC;
+    t->bin->major_version = BOBO_LANG_MAJOR;
+    t->bin->minor_version = BOBO_LANG_MINOR;
+
+    t->bin->constant_count = 0;
+    t->bin->constants = NULL;
+
+    t->bin->function_count = 0;
+    t->bin->functions = NULL;
+
+    t->aux = malloc(sizeof(aux));
+    t->aux->import_count = 0;
+    t->aux->imports = NULL;
 
     return t;
 }
 
-bobo_bin *translate(translator *translator) {
-    move(translator);
-    file(translator);
-    return translator->bin;
+bobo_bin *translate(translator *t) {
+    move(t);
+    file(t);
+
+    bobo_bin *bin = t->bin;
+    free(t->lexer);
+    free(t->prev);
+    free(t->curr);
+    free(t->aux);
+    free(t);
+
+    return bin;
 }
