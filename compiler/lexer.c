@@ -2,17 +2,24 @@
 #include <ctype.h>
 #include <string.h>
 #include <malloc.h>
+#include <stdbool.h>
 
-#include "token.h"
-#include "lexer.h"
+#include "lexer/token.h"
+#include "lexer/lexer.h"
 #include "lib/console.h"
 
 static int is_whitespace(lexer *lexer);
-static token make_token(lexer *lexer, int tag, char *lexeme, int reset);
+static token *make_token(lexer *lexer, int tag, char *lexeme, bool reset);
 
 #define next()      (lexer->peek = fgetc(lexer->fptr))
-#define mktok(tok)  make_token(lexer, tok, 0)
-#define mktokr(tok) make_token(lexer, tok, 1)
+#define mktok(tok)  make_token(lexer, tok, false)
+#define mktokr(tok) make_token(lexer, tok, true)
+
+struct lexer {
+    FILE *fptr;
+    char peek;
+    int line;
+};
 
 lexer *init_lexer(FILE *fptr) {
     lexer *lex = malloc(sizeof(lexer));
@@ -22,7 +29,12 @@ lexer *init_lexer(FILE *fptr) {
     return lex;
 }
 
-token scan(lexer *lexer) {
+void free_lexer(lexer *lexer) {
+    fclose(lexer->fptr);
+    free(lexer);
+}
+
+token *scan(lexer *lexer) {
     while (is_whitespace(lexer)) {
         if (lexer->peek == '\n') {
             lexer->line++;
@@ -97,7 +109,7 @@ token scan(lexer *lexer) {
                 print(E, "illegal symbol %s at line %d\n", lexeme, lexer->line);
                 return mktok(TOK_ERR);
             } else {
-                token ret;
+                token *ret;
                 if (strcmp(lexeme, "import") == 0) {
                     ret = mktokr(TOK_IMPORT);
                 } else if (strcmp(lexeme, "fun") == 0) {
@@ -116,7 +128,7 @@ token scan(lexer *lexer) {
                     ret = mktokr(TOK_ID);
                 }
 
-                if (ret.tag != ID) {
+                if (ret->tag != ID) {
                     free(lexeme);
                 }
 
@@ -134,13 +146,15 @@ static int is_whitespace(lexer *lexer) {
            || lexer->peek == '\r';
 }
 
-static token make_token(lexer *lexer, int tag, char *lexeme, int reset) {
+static token *make_token(lexer *lexer, int tag, char *lexeme, bool reset) {
     if (reset) {
         lexer->peek = ' ';
     }
-    return (token) {
-            .tag = tag,
-            .lexeme = lexeme,
-            .line = lexer->line,
-    };
+
+    token *tok = malloc(sizeof(token));
+    tok->line = lexer->line;
+    tok->lexeme = lexeme;
+    tok->tag = tag;
+
+    return tok;
 }

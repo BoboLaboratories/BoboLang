@@ -8,7 +8,7 @@ override CC = gcc
 SHARED = shared/*.h
 
 MAIN = compiler vm sandbox
-LIBS = console
+LIBS = console hashmap
 
 MAIN_BINARIES = $(addprefix bin/,$(MAIN))
 LIBS_BINARIES = $(addprefix bin/lib/,$(LIBS))
@@ -21,8 +21,8 @@ bin/sandbox: sandbox/*.c | makedir
 bin/%: %/*.c %/*.h $(SHARED) | makedir
 	$(CC) $(CFLAGS) $(filter %.c,$^) -o $@
 
-bin/compiler: compiler/*.c compiler/*.h console
-	$(CC) $(CFLAGS) $(filter %.c,$^) -o $@ -l:console
+bin/compiler: compiler/*.c compiler/include/*/*.h compiler/lib/*/*.c compiler/lib/*/*.h console
+	$(CC) $(CFLAGS) $(filter %.c,$^) -Icompiler/include -o $@ -l:console
 
 # Directive for making any library
 %: shared/impl/%.c shared/lib/%.h | makedir

@@ -4,14 +4,14 @@ import math.pow
 
 const g0 = __get_so_pipe()
 
-private fun move(const x, y = std.default(), offset = o) {
+const g1 = g2
+
+private fun move(const x, y = t, offset = o) {
     var a = j
     a = b
 
     http_send()
 }
-
-b = e
 
 native fun main(x)
 

@@ -1,7 +1,9 @@
 #ifndef BOBO_LANG_BIN_H
 #define BOBO_LANG_BIN_H
 
-#include "sys/types.h"
+#include <sys/types.h>
+
+#include "function.h"
 
 #define FUN_MOD_BASE    0
 
@@ -27,22 +29,15 @@
 
 #define BOBO_LANG_MAGIC 0xB0B0B0B0
 
+#define BOBO_LANG_MAJOR 0
+#define BOBO_LANG_MINOR 1
+
 typedef struct {
     u_int8_t type;
     union {
         char *str;
     } value;
 } constant;
-
-typedef u_int8_t funmod;
-
-typedef struct {
-    char *name;
-    funmod mod;
-    u_int8_t min_args;
-    u_int8_t max_args;
-    u_int32_t *code;
-} function;
 
 typedef struct {
     /* Unix file info */

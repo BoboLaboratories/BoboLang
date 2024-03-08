@@ -7,14 +7,11 @@ typedef struct {
     char *lexeme;
 } token;
 
-#define TOK_PRINT(tok)  {                                                       \
-                            if (tok->tag == EOF) {                             \
-                                print(N, "<EOF>\n");                            \
-                            } else if (tok->tag != ERR) {                      \
-                                print(N, "<%d, %s>\n", tok->tag, tok->lexeme);  \
-                            }                                                   \
+#define TOK_PRINT(tok)  if (tok->tag == EOF) {                              \
+                            print(N, "<EOF>\n");                            \
+                        } else if (tok->tag != ERR) {                       \
+                            print(N, "<%d, %s>\n", tok->tag, tok->lexeme);  \
                         }
-
 
 /* constant tokens mapped to extended ASCII */
 #define LPT    '('
@@ -86,7 +83,5 @@ typedef struct {
 #define TOK_ERR ERR, ""
 
 #define TOK_EOF EOF, ""
-
-
 
 #endif

@@ -2,17 +2,20 @@
 #include <string.h>
 #include <malloc.h>
 
-#include "lexer.h"
+#include "include/lexer/lexer.h"
 #include "compiler.h"
-#include "translator.h"
+#include "include/parser/parser.h"
 #include "lib/console.h"
+#include "lib/st/symbol_table.h"
 
 #define dynamic_add(dest, count, type, val)             \
         count++;                                        \
         dest = reallocarray(dest, count, sizeof(type)); \
-        dest[count - 1] = val;
+        dest[count - 1] = val
 
 #define function_add(fun) dynamic_add(t->bin->functions, t->bin->function_count, function, fun)
+
+#define import_add(id) dynamic_add(t->imports, t->import_count, char *, id)
 
 static void qidexprp(translator *t);
 
@@ -183,11 +186,14 @@ static void qidstatp(translator *t) {
 
 static void statvardecl(translator *t) {
     switch (t->curr->tag) {
-    case CONST:
+    case CONST: {
         match(t, CONST);
         match(t, ID);
+        char *id = t->prev->lexeme;
+        st_set(t->env, id, id);
         assign(t);
         break;
+    }
     case VAR:
         match(t, VAR);
         match(t, ID);
@@ -424,11 +430,7 @@ static void importlist(translator *t) {
     case IMPORT: {
         match(t, IMPORT);
         char *id = qid(t);
-
-        t->aux->import_count++;
-        t->aux->imports = reallocarray(t->aux->imports, t->aux->import_count, sizeof(char *));
-        t->aux->imports[t->aux->import_count - 1] = id;
-
+        import_add(id);
         importlist(t);
         break;
     }
@@ -466,8 +468,7 @@ static void file(translator *t) {
     }
 }
 
-
-translator *init_translator(lexer *lexer) {
+translator *init_parser(lexer *lexer) {
     translator *t = malloc(sizeof(translator));
 
     t->lexer = lexer;
@@ -486,9 +487,10 @@ translator *init_translator(lexer *lexer) {
     t->bin->function_count = 0;
     t->bin->functions = NULL;
 
-    t->aux = malloc(sizeof(aux));
-    t->aux->import_count = 0;
-    t->aux->imports = NULL;
+    t->import_count = 0;
+    t->imports = NULL;
+
+    t->env = st_create(NULL);
 
     return t;
 }
@@ -501,7 +503,6 @@ bobo_bin *translate(translator *t) {
     free(t->lexer);
     free(t->prev);
     free(t->curr);
-    free(t->aux);
     free(t);
 
     return bin;
