@@ -1,5 +1,6 @@
 #include <stdio.h>
 #include <ctype.h>
+#include <stdlib.h>
 #include <string.h>
 #include <malloc.h>
 #include <stdbool.h>
@@ -8,12 +9,23 @@
 #include "lexer/lexer.h"
 #include "lib/console.h"
 
-static int is_whitespace(lexer *lexer);
 static token *make_token(lexer *lexer, int tag, char *lexeme, bool reset);
+static int is_whitespace(lexer *lexer);
 
-#define next()      (lexer->peek = fgetc(lexer->fptr))
-#define mktok(tok)  make_token(lexer, tok, false)
-#define mktokr(tok) make_token(lexer, tok, true)
+/* reads the next char from file */
+#define next()                  (lexer->peek = fgetc(lexer->fptr))
+
+/* make token with well known lexeme */
+#define mktok(tok)              make_token(lexer, tok, false)
+
+/* make token with well known lexeme and reset peek */
+#define mktokr(tok)             make_token(lexer, tok, true)
+
+/* make token with the given tag and lexeme */
+#define mktokl(tag, lexeme)     make_token(lexer, tag, lexeme, false)
+
+/* make token with the given tag and lexeme and reset peek */
+#define mktoklr(tag, lexeme)    make_token(lexer, tag, lexeme, true)
 
 struct lexer {
     FILE *fptr;
@@ -23,9 +35,11 @@ struct lexer {
 
 lexer *init_lexer(FILE *fptr) {
     lexer *lex = malloc(sizeof(lexer));
+
     lex->fptr = fptr;
     lex->peek = ' ';
     lex->line = 1;
+
     return lex;
 }
 
@@ -74,17 +88,17 @@ token *scan(lexer *lexer) {
     case '&':
         if (next() != '&') {
             print(E, "illegal symbol &%c at line %d\n", lexer->peek, lexer->line);
-            return mktok(TOK_ERR);
+            exit(EXIT_FAILURE);
         }
         return mktokr(TOK_AND);
     case '|':
         if (next() != '|') {
             print(E, "illegal symbol |%c at line %d\n", lexer->peek, lexer->line);
-            return mktok(TOK_ERR);
+            exit(EXIT_FAILURE);
         }
         return mktokr(TOK_OR);
     case EOF:
-        return mktok(TOK_EOF);
+        return mktokl(EOF, NULL);
     default:
         if (isalpha(lexer->peek) || lexer->peek == '_') {
             int underscore_only = lexer->peek == '_';
@@ -107,7 +121,7 @@ token *scan(lexer *lexer) {
 
             if (underscore_only) {
                 print(E, "illegal symbol %s at line %d\n", lexeme, lexer->line);
-                return mktok(TOK_ERR);
+                exit(EXIT_FAILURE);
             } else {
                 token *ret;
                 if (strcmp(lexeme, "import") == 0) {
@@ -125,7 +139,7 @@ token *scan(lexer *lexer) {
                 } else if (strcmp(lexeme, "check") == 0) {
                     ret = mktokr(TOK_CHECK);
                 } else {
-                    ret = mktokr(TOK_ID);
+                    ret = mktoklr(ID, lexeme);
                 }
 
                 if (ret->tag != ID) {
@@ -135,7 +149,9 @@ token *scan(lexer *lexer) {
                 return ret;
             }
         }
-        return mktok(TOK_ERR);
+
+        print(E, "erroneous symbol %c at line %d\n", lexer->peek, lexer->line);
+        exit(EXIT_FAILURE);
     }
 }
 

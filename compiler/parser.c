@@ -2,10 +2,12 @@
 #include <string.h>
 #include <malloc.h>
 
+#include "macrolist.h"
 #include "lexer/lexer.h"
 #include "parser/ast.h"
 #include "parser/parser.h"
 #include "lib/console.h"
+#include "lib/string_utils.h"
 
 struct parser {
     lexer *lexer;
@@ -14,22 +16,14 @@ struct parser {
     ast_program *program;
 };
 
-#define dynamic_add(dest, count, type, val)             \
-        count++;                                        \
-        dest = reallocarray(dest, count, sizeof(type)); \
-        dest[count - 1] = val
-
-#define function_add(fun) dynamic_add(p->bin->functions, p->bin->function_counp, function, fun)
-
-#define import_add(id) dynamic_add(p->program->import_list->imports, p->program->import_list->import_counp, char *, id)
 
 static void qidexprp(parser *p);
 
 static void move(parser *p) {
     if (p->prev) {
-        /* if (p->prev->tag == ID) {
+        if (p->prev->tag == ID) {
             free(p->prev->lexeme);
-        } */
+        }
         free(p->prev);
     }
     p->prev = p->curr;
@@ -83,7 +77,7 @@ static char *qid(parser *p) {
     switch (p->curr->tag) {
     case ID:
         match(p, ID);
-        char *id = p->prev->lexeme;
+        char *id = strdup(p->prev->lexeme);
         return qidp(p, id);
     default:
         print(E, "qid");
@@ -258,24 +252,19 @@ static void statlist(parser *p) {
 }
 
 static ast_funarg *funarg(parser *p) {
-    ast_funarg *arg;
-
     switch (p->curr->tag) {
     case CONST:
-        match(p, CONST);
+    case ID: {
+        ast_funarg *arg = malloc(sizeof(ast_funarg));
+        arg->is_const = p->curr->tag == CONST;
+        if (arg->is_const) {
+            match(p, CONST);
+        }
         match(p, ID);
-        arg = malloc(sizeof(ast_funarg));
-        arg->name = p->prev->lexeme;
-        arg->is_const = true;
+        arg->name = strdup(p->prev->lexeme);
         arg->expr = NULL;
         return arg;
-    case ID:
-        match(p, ID);
-        arg = malloc(sizeof(ast_funarg));
-        arg->name = p->prev->lexeme;
-        arg->is_const = false;
-        arg->expr = NULL;
-        return arg;
+    }
     default:
         print(E, "funarg");
         exit(EXIT_FAILURE);
@@ -288,7 +277,7 @@ static void fundefarglistp(parser *p, ast_fundef *fun) {
         match(p, COMMA);
         ast_funarg *arg = funarg(p);
         arg->expr = assign(p);
-        dynamic_add(fun->args, fun->arg_count, ast_funarg, *arg);
+        LIST_ADD(fun->args, arg);
         fundefarglistp(p, fun);
         break;
     case RPT:
@@ -300,7 +289,7 @@ static void fundefarglistp(parser *p, ast_fundef *fun) {
 }
 
 static void funarglistp(parser *p, ast_fundef *fun, ast_funarg *arg) {
-    dynamic_add(fun->args, fun->arg_count, ast_funarg, *arg);
+    LIST_ADD(fun->args, arg);
 
     switch (p->curr->tag) {
     case COMMA:
@@ -341,12 +330,13 @@ static ast_fundef *funsig(parser *p) {
     case FUN:
         match(p, FUN);
         match(p, ID);
+
         ast_fundef *fun = malloc(sizeof(ast_fundef));
-        fun->name = p->prev->lexeme;
+        fun->name = strdup(p->prev->lexeme);
         fun->is_private = false;
         fun->is_native = false;
-        fun->arg_count = 0;
-        fun->args = NULL;
+        LIST_INIT(fun, args);
+
         match(p, LPT);
         funarglist(p, fun);
         match(p, RPT);
@@ -383,62 +373,45 @@ static ast_fundef *nativefundef(parser *p) {
     }
 }
 
+
 static ast_program_stat *privatefilep(parser *p) {
-    ast_program_stat *stat = malloc(sizeof(ast_stat));
+    ast_program_stat *node = malloc(sizeof(ast_stat));
 
     switch (p->curr->tag) {
     case CONST:
     case VAR:
         statvardecl(p);
         break;
-    case NATIVE: {
-        ast_fundef *fun = nativefundef(p);
-        fun->is_private = true;
-        stat->type = FUNDEF;
-        stat->value = fun;
-        dynamic_add(p->program->stats, p->program->stat_count, ast_program_stat *, stat);
-        return stat;
-    }
-    case FUN: {
-        ast_fundef *fun = fundef(p);
-        fun->is_private = true;
-        stat->type = FUNDEF;
-        stat->value = fun;
-        dynamic_add(p->program->stats, p->program->stat_count, ast_program_stat *, stat);
-        return stat;
-    }
+    case NATIVE:
+    case FUN:
+        node->type = FUNDEF;
+        node->value = (p->curr->tag == NATIVE) ? nativefundef(p) : fundef(p);
+        ((ast_fundef *) node->value)->is_private = true;
+        LIST_ADD(p->program->stats, node);
+        return node;
     default:
-        free(stat);
+        free(node);
         print(E, "privatefilep");
         exit(EXIT_FAILURE);
     }
 }
 
 static void filep(parser *p) {
+    ast_program_stat *node = malloc(sizeof(ast_program_stat));
+
     switch (p->curr->tag) {
     case PRIVATE:
         match(p, PRIVATE);
         privatefilep(p);
         filep(p);
         break;
-    case NATIVE: {
-        ast_fundef *fun = nativefundef(p);
-        ast_program_stat *stat = malloc(sizeof(ast_program_stat));
-        stat->type = FUNDEF;
-        stat->value = fun;
-        dynamic_add(p->program->stats, p->program->stat_count, ast_program_stat *, stat);
+    case NATIVE:
+    case FUN:
+        node->type = FUNDEF;
+        node->value = (p->curr->tag == NATIVE) ? nativefundef(p) : fundef(p);
+        LIST_ADD(p->program->stats, node);
         filep(p);
         break;
-    }
-    case FUN: {
-        ast_fundef *fun = fundef(p);
-        ast_program_stat *stat = malloc(sizeof(ast_program_stat));
-        stat->type = FUNDEF;
-        stat->value = fun;
-        dynamic_add(p->program->stats, p->program->stat_count, ast_program_stat *, stat);
-        filep(p);
-        break;
-    }
     case CONST:
     case VAR:
     case ID:
@@ -453,18 +426,14 @@ static void filep(parser *p) {
     }
 }
 
-static void importlist(parser *p, ast_import_list *il) {
+
+static void importlist(parser *p) {
     switch (p->curr->tag) {
     case IMPORT:
         match(p, IMPORT);
         char *id = qid(p);
-        if (p->program->import_list == NULL) {
-            il = p->program->import_list = malloc(sizeof(ast_import_list));
-            il->import_count = 0;
-            il->imports = NULL;
-        }
-        dynamic_add(il->imports, il->import_count, char *, id);
-        importlist(p, il);
+        LIST_ADD(p->program->imports, id);
+        importlist(p);
         break;
     case PRIVATE:
     case NATIVE:
@@ -490,7 +459,7 @@ static void file(parser *p) {
     case FUN:
     case VAR:
     case ID:
-        importlist(p, NULL);
+        importlist(p);
         filep(p);
         match(p, EOF);
         break;
@@ -508,9 +477,8 @@ parser *init_parser(lexer *lexer) {
     p->curr = malloc(sizeof(token));
 
     p->program = malloc(sizeof(ast_program));
-    p->program->import_list = NULL;
-    p->program->stat_count = 0;
-    p->program->stats = NULL;
+    LIST_INIT(p->program, imports);
+    LIST_INIT(p->program, stats);
 
     return p;
 }

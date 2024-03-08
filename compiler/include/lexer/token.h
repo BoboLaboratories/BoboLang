@@ -7,11 +7,15 @@ typedef struct {
     char *lexeme;
 } token;
 
-#define TOK_PRINT(tok)  if (tok->tag == EOF) {                              \
-                            print(N, "<EOF>\n");                            \
-                        } else if (tok->tag != ERR) {                       \
-                            print(N, "<%d, %s>\n", tok->tag, tok->lexeme);  \
-                        }
+#define TOK_PRINT(tok)  do {                                                        \
+                            if (tok != NULL) {                                      \
+                                if (tok->tag == EOF) {                              \
+                                    print(N, "<EOF>\n");                            \
+                                } else {                                            \
+                                    print(N, "<%d, %s>\n", tok->tag, tok->lexeme);  \
+                                }                                                   \
+                            }                                                       \
+                        } while(0)
 
 /* constant tokens mapped to extended ASCII */
 #define LPT    '('
@@ -59,6 +63,7 @@ typedef struct {
 #define CONST   267
 #define VAR     268
 #define CHECK   269
+#define ID      270     /* begin special tokens ids */
 
 #define TOK_ARROW   ARROW,   "->"
 #define TOK_AND     AND,     "&&"
@@ -74,14 +79,5 @@ typedef struct {
 #define TOK_CONST   CONST,   "const"
 #define TOK_VAR     VAR,     "var"
 #define TOK_CHECK   CHECK,   "check"
-
-/* special tokens */
-#define ID      270
-#define TOK_ID  ID, lexeme
-
-#define ERR     (-2)
-#define TOK_ERR ERR, ""
-
-#define TOK_EOF EOF, ""
 
 #endif

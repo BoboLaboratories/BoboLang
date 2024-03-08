@@ -1,4 +1,4 @@
-override CFLAGS = -ansi -Werror -Ishared -Lbin/lib
+override CFLAGS = -ansi -Werror -Lbin/lib -Ishared
 override CC = gcc
 
 # $@ target
@@ -7,13 +7,13 @@ override CC = gcc
 
 SHARED = shared/*.h
 
-MAIN = compiler vm sandbox
-LIBS = console hashmap
+MAIN = vm sandbox
+LIBS = console string_utils
 
 MAIN_BINARIES = $(addprefix bin/,$(MAIN))
 LIBS_BINARIES = $(addprefix bin/lib/,$(LIBS))
 
-all: $(MAIN_BINARIES)
+all: $(MAIN_BINARIES) boboc
 
 bin/sandbox: sandbox/*.c | makedir
 	$(CC) $(CFLAGS) $< -o $@
@@ -21,12 +21,15 @@ bin/sandbox: sandbox/*.c | makedir
 bin/%: %/*.c %/*.h $(SHARED) | makedir
 	$(CC) $(CFLAGS) $(filter %.c,$^) -o $@
 
-bin/compiler: compiler/*.c compiler/include/*/*.h compiler/lib/*/*.c compiler/lib/*/*.h console
-	$(CC) $(CFLAGS) $(filter %.c,$^) -Icompiler/include -o $@ -l:console
+# Directive for building the compiler
+COMPILER_SHARED_LIBS = console string_utils
+COMPILER_LIBS = compiler/lib/*/*.c compiler/lib/*/*.h
+boboc: compiler/*.c compiler/include/*/*.h $(COMPILER_LIBS) $(COMPILER_SHARED_LIBS)
+	$(CC) $(CFLAGS) -Icompiler/include $(filter %.c,$^) $(addprefix -l:,$(COMPILER_SHARED_LIBS)) -o bin/$@
 
 # Directive for making any library
 %: shared/impl/%.c shared/lib/%.h | makedir
-	$(CC) $(CFLAGS) -c -o bin/lib/$@ $<
+	$(CC) $(CFLAGS) -c $< -o bin/lib/$@
 
 # Simple clean directive
 clean:

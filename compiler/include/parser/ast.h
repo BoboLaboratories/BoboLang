@@ -3,6 +3,7 @@
 
 #include <stdbool.h>
 #include <sys/types.h>
+#include "macrolist.h"
 
 typedef struct {
 
@@ -22,8 +23,7 @@ typedef struct {
     bool is_private;
     bool is_native;
     char *name;
-    u_int8_t arg_count;
-    ast_funarg *args;
+    LIST_DEF(ast_funarg *, u_int8_t, args);
 } ast_fundef;
 
 typedef struct {
@@ -35,14 +35,8 @@ typedef struct {
 } ast_program_stat;
 
 typedef struct {
-    unsigned int import_count;
-    char **imports;
-} ast_import_list;
-
-typedef struct {
-    ast_import_list *import_list;
-    unsigned int stat_count;
-    ast_program_stat **stats;
+    LIST_DEF(char *, u_int32_t, imports);
+    LIST_DEF(ast_program_stat *, u_int32_t, stats);
 } ast_program;
 
 #endif

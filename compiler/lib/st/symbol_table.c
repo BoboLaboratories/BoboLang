@@ -5,6 +5,7 @@
 #include <string.h>
 
 #include "symbol_table.h"
+#include "lib/string_utils.h"
 
 #define INITIAL_CAPACITY 16  /* must not be zero */
 
@@ -92,15 +93,6 @@ void *st_get(st *table, const char *key) {
     }
 
     return NULL;
-}
-
-static char *strdup(const char *s) {
-    size_t size = strlen(s) + 1;
-    char *p = malloc(size);
-    if (p) {
-        memcpy(p, s, size);
-    }
-    return p;
 }
 
 /* Internal function to set an entry (without expanding table). */
