@@ -6,11 +6,45 @@
 #include "macrolist.h"
 
 typedef struct {
+    char *qid;
+} ast_expr_qid;
 
+typedef struct {
+    char *qid;
+    /* TODO: arglist */
+} ast_expr_invoke;
+
+typedef struct {
+    enum {
+        EXPR_QID,
+        EXPR_INVOKE
+    } type;
+    void *value;
 } ast_expr;
 
 typedef struct {
+    char *qid;
+} ast_stat_invoke;
 
+typedef struct {
+    bool is_private;
+    bool is_const;
+    char *name;
+    ast_expr *init;
+} ast_stat_var_decl;
+
+typedef struct {
+    char *qid;
+    ast_expr *expr;
+} ast_stat_var_assign;
+
+typedef struct {
+    enum {
+        STAT_INVOKE,
+        STAT_VAR_DECL,
+        STAT_VAR_ASSIGN
+    } type;
+    void *value;
 } ast_stat;
 
 typedef struct {
@@ -28,8 +62,8 @@ typedef struct {
 
 typedef struct {
     enum {
-        STAT,
-        FUNDEF
+        PROGRAM_STAT,
+        PROGRAM_FUNDEF
     } type;
     void *value;
 } ast_program_stat;

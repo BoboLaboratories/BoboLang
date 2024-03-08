@@ -2,12 +2,16 @@ import a.b.c
 import io.net
 import math.pow
 
-const g0 = __get_so_pipe()
+private const g0 = __get_so_pipe()
 
-const g1 = g2
+const g1 = g0
 
-private fun move(const x, y = t, offset = o) {
-    var a = j
+private var a
+var b = h
+private var c
+
+private fun move(const x, y = t(x, y()), offset = o) {
+    var a
     a = b
 
     http_send()

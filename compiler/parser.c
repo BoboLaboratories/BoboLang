@@ -9,6 +9,17 @@
 #include "lib/console.h"
 #include "lib/string_utils.h"
 
+
+#define INIT_NODE(node_type, ast_type, node, code)                      \
+    do {                                                                \
+        node->type = node_type;                                         \
+        {                                                               \
+            ast_type *init = node->value = malloc(sizeof(ast_type));    \
+            code                                                        \
+        }                                                               \
+    } while(0)
+
+
 struct parser {
     lexer *lexer;
     token *prev;
@@ -17,7 +28,7 @@ struct parser {
 };
 
 
-static void qidexprp(parser *p);
+static ast_expr *qidexprp(parser *p, char *qid);
 
 static void move(parser *p) {
     if (p->prev) {
@@ -85,12 +96,11 @@ static char *qid(parser *p) {
     }
 }
 
-static void expr(parser *p) {
+static ast_expr *expr(parser *p) {
     switch (p->curr->tag) {
-    case ID:
-        qid(p);
-        qidexprp(p);
-        break;
+    case ID: {
+        return qidexprp(p, qid(p));
+    }
     default:
         print(E, "expr");
         exit(EXIT_FAILURE);
@@ -139,11 +149,16 @@ static void invokeargs(parser *p) {
     }
 }
 
-static void qidexprp(parser *p) {
+static ast_expr *qidexprp(parser *p, char *qid) {
+    ast_expr *node = malloc(sizeof(ast_expr));
+
     switch (p->curr->tag) {
     case LPT:
-        invokeargs(p);
-        break;
+        INIT_NODE(EXPR_INVOKE, ast_expr_invoke, node, {
+            init->qid = qid;
+            /* TODO */ invokeargs(p);
+        });
+        return node;
     case PRIVATE:
     case NATIVE:
     case COMMA:
@@ -154,8 +169,12 @@ static void qidexprp(parser *p) {
     case RPT:
     case VAR:
     case ID:
-        break;
+        INIT_NODE(EXPR_QID, ast_expr_qid, node, {
+           init->qid = qid;
+        });
+        return node;
     default:
+        free(node);
         print(E, "qidexprp");
         exit(EXIT_FAILURE);
     }
@@ -165,21 +184,26 @@ static ast_expr *assign(parser *p) {
     switch (p->curr->tag) {
     case ASSIGN:
         match(p, ASSIGN);
-        expr(p);
-        return NULL; /* TODO */
+        return expr(p);
     default:
         print(E, "assign");
         exit(EXIT_FAILURE);
     }
 }
 
-static void qidstatp(parser *p) {
+static void qidstatp(parser *p, char *qid, ast_stat *node) {
     switch (p->curr->tag) {
     case ASSIGN:
-        assign(p);
+        INIT_NODE(STAT_VAR_ASSIGN, ast_stat_var_assign, node, {
+            init->qid = qid;
+            init->expr = assign(p);
+        });
         break;
     case LPT:
-        invokeargs(p);
+        INIT_NODE(STAT_INVOKE, ast_stat_invoke, node, {
+            init->qid = qid;
+            /* TODO */ invokeargs(p);
+        });
         break;
     default:
         print(E, "qidstatp");
@@ -187,36 +211,65 @@ static void qidstatp(parser *p) {
     }
 }
 
-static void statvardecl(parser *p) {
+static ast_expr *statvardeclp(parser *p) {
+    switch (p->curr->tag) {
+    case ASSIGN:
+        return assign(p);
+    case PRIVATE:
+    case NATIVE:
+    case CONST:
+    case EOF:
+    case FUN:
+    case RPG:
+    case VAR:
+    case ID:
+        return NULL;
+    default:
+        print(E, "statvardeclp");
+        exit(EXIT_FAILURE);
+    }
+}
+
+static ast_stat_var_decl *statvardecl(parser *p) {
+    ast_stat_var_decl *node = malloc(sizeof(ast_stat_var_decl));
+    node->is_private = false;
+
     switch (p->curr->tag) {
     case CONST: {
         match(p, CONST);
         match(p, ID);
-        assign(p);
-        break;
+        node->name = strdup(p->prev->lexeme);
+        node->init = assign(p);
+        node->is_const = true;
+        return node;
     }
     case VAR:
         match(p, VAR);
         match(p, ID);
-        assign(p);
-        break;
+        node->name = strdup(p->prev->lexeme);
+        node->init = statvardeclp(p);
+        node->is_const = false;
+        return node;
     default:
         print(E, "statvardecl");
         exit(EXIT_FAILURE);
     }
 }
 
-static void stat(parser *p) {
+static ast_stat *stat(parser *p) {
+    ast_stat *node = malloc(sizeof(ast_stat));
+
     switch (p->curr->tag) {
     case CONST:
     case VAR:
-        statvardecl(p);
-        break;
+        node->type = STAT_VAR_DECL;
+        node->value = statvardecl(p);
+        return node;
     case ID:
-        qid(p);
-        qidstatp(p);
-        break;
+        qidstatp(p, qid(p), node);
+        return node;
     default:
+        free(node);
         print(E, "stat");
         exit(EXIT_FAILURE);
     }
@@ -255,15 +308,15 @@ static ast_funarg *funarg(parser *p) {
     switch (p->curr->tag) {
     case CONST:
     case ID: {
-        ast_funarg *arg = malloc(sizeof(ast_funarg));
-        arg->is_const = p->curr->tag == CONST;
-        if (arg->is_const) {
+        ast_funarg *node = malloc(sizeof(ast_funarg));
+        node->is_const = p->curr->tag == CONST;
+        if (node->is_const) {
             match(p, CONST);
         }
         match(p, ID);
-        arg->name = strdup(p->prev->lexeme);
-        arg->expr = NULL;
-        return arg;
+        node->name = strdup(p->prev->lexeme);
+        node->expr = NULL;
+        return node;
     }
     default:
         print(E, "funarg");
@@ -275,9 +328,9 @@ static void fundefarglistp(parser *p, ast_fundef *fun) {
     switch (p->curr->tag) {
     case COMMA:
         match(p, COMMA);
-        ast_funarg *arg = funarg(p);
-        arg->expr = assign(p);
-        LIST_ADD(fun->args, arg);
+        ast_funarg *node = funarg(p);
+        node->expr = assign(p);
+        LIST_ADD(fun->args, node);
         fundefarglistp(p, fun);
         break;
     case RPT:
@@ -313,8 +366,8 @@ static void funarglist(parser *p, ast_fundef *fun) {
     switch (p->curr->tag) {
     case CONST:
     case ID: {
-        ast_funarg *arg = funarg(p);
-        funarglistp(p, fun, arg);
+        ast_funarg *node = funarg(p);
+        funarglistp(p, fun, node);
         break;
     }
     case RPT:
@@ -331,16 +384,17 @@ static ast_fundef *funsig(parser *p) {
         match(p, FUN);
         match(p, ID);
 
-        ast_fundef *fun = malloc(sizeof(ast_fundef));
-        fun->name = strdup(p->prev->lexeme);
-        fun->is_private = false;
-        fun->is_native = false;
-        LIST_INIT(fun, args);
+        ast_fundef *node = malloc(sizeof(ast_fundef));
+        node->name = strdup(p->prev->lexeme);
+        node->is_private = false;
+        node->is_native = false;
+        LIST_INIT(node, args);
 
         match(p, LPT);
-        funarglist(p, fun);
+        funarglist(p, node);
+
         match(p, RPT);
-        return fun;
+        return node;
     default:
         print(E, "funsig");
         exit(EXIT_FAILURE);
@@ -350,9 +404,9 @@ static ast_fundef *funsig(parser *p) {
 static ast_fundef *fundef(parser *p) {
     switch (p->curr->tag) {
     case FUN: {
-        ast_fundef *fun = funsig(p);
+        ast_fundef *node = funsig(p);
         statlist(p);
-        return fun;
+        return node;
     }
     default:
         print(E, "fundef");
@@ -364,33 +418,38 @@ static ast_fundef *nativefundef(parser *p) {
     switch (p->curr->tag) {
     case NATIVE:
         match(p, NATIVE);
-        ast_fundef *fun = funsig(p);
-        fun->is_native = true;
-        return fun;
+        ast_fundef *node = funsig(p);
+        node->is_native = true;
+        return node;
     default:
         print(E, "nativefundef");
         exit(EXIT_FAILURE);
     }
 }
 
-
-static ast_program_stat *privatefilep(parser *p) {
-    ast_program_stat *node = malloc(sizeof(ast_stat));
-
+static void privatefilep(parser *p, ast_program_stat *node) {
     switch (p->curr->tag) {
     case CONST:
     case VAR:
-        statvardecl(p);
+        /*
+         * private variable definitions (ast_stat_var_decl)
+         * are the only root level stats that may be declared as private,
+         * nevertheless they must be wrapped as a normal stat (ast_stat)
+         */
+        node->type = PROGRAM_STAT;
+        node->value = malloc(sizeof(ast_stat));
+        ((ast_stat *) node->value)->type = STAT_VAR_DECL;
+        ((ast_stat *) node->value)->value = statvardecl(p);
+        ((ast_stat_var_decl *) ((ast_stat *) node->value)->value)->is_private = true;
         break;
     case NATIVE:
     case FUN:
-        node->type = FUNDEF;
-        node->value = (p->curr->tag == NATIVE) ? nativefundef(p) : fundef(p);
-        ((ast_fundef *) node->value)->is_private = true;
-        LIST_ADD(p->program->stats, node);
-        return node;
+        INIT_NODE(PROGRAM_FUNDEF, ast_fundef, node, {
+            *init = *((p->curr->tag == NATIVE) ? nativefundef(p) : fundef(p));
+            init->is_private = true;
+        });
+        break;
     default:
-        free(node);
         print(E, "privatefilep");
         exit(EXIT_FAILURE);
     }
@@ -402,12 +461,14 @@ static void filep(parser *p) {
     switch (p->curr->tag) {
     case PRIVATE:
         match(p, PRIVATE);
-        privatefilep(p);
+        privatefilep(p, node);
+
+        LIST_ADD(p->program->stats, node);
         filep(p);
         break;
     case NATIVE:
     case FUN:
-        node->type = FUNDEF;
+        node->type = PROGRAM_FUNDEF;
         node->value = (p->curr->tag == NATIVE) ? nativefundef(p) : fundef(p);
         LIST_ADD(p->program->stats, node);
         filep(p);
@@ -415,17 +476,19 @@ static void filep(parser *p) {
     case CONST:
     case VAR:
     case ID:
-        stat(p);
+        node->type = PROGRAM_STAT;
+        node->value = stat(p);
+        LIST_ADD(p->program->stats, node);
         filep(p);
         break;
     case EOF:
         break;
     default:
+        free(node);
         print(E, "filep");
         exit(EXIT_FAILURE);
     }
 }
-
 
 static void importlist(parser *p) {
     switch (p->curr->tag) {

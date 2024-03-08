@@ -9,8 +9,12 @@
 #include "lexer/lexer.h"
 #include "lib/console.h"
 
-static token *make_token(lexer *lexer, int tag, char *lexeme, bool reset);
-static int is_whitespace(lexer *lexer);
+struct lexer {
+    FILE *fptr;
+    char peek;
+    int line;
+};
+
 
 /* reads the next char from file */
 #define next()                  (lexer->peek = fgetc(lexer->fptr))
@@ -27,11 +31,10 @@ static int is_whitespace(lexer *lexer);
 /* make token with the given tag and lexeme and reset peek */
 #define mktoklr(tag, lexeme)    make_token(lexer, tag, lexeme, true)
 
-struct lexer {
-    FILE *fptr;
-    char peek;
-    int line;
-};
+
+static token *make_token(lexer *lexer, int tag, char *lexeme, bool reset);
+static int is_whitespace(lexer *lexer);
+
 
 lexer *init_lexer(FILE *fptr) {
     lexer *lex = malloc(sizeof(lexer));
@@ -157,9 +160,9 @@ token *scan(lexer *lexer) {
 
 static int is_whitespace(lexer *lexer) {
     return lexer->peek == ' '
-           || lexer->peek == '\t'
-           || lexer->peek == '\n'
-           || lexer->peek == '\r';
+        || lexer->peek == '\t'
+        || lexer->peek == '\n'
+        || lexer->peek == '\r';
 }
 
 static token *make_token(lexer *lexer, int tag, char *lexeme, bool reset) {
