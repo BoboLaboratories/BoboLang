@@ -64,6 +64,7 @@ typedef struct {
 #define VAR     268
 #define CHECK   269
 #define ID      270     /* begin special tokens ids */
+#define NUM     271
 
 #define TOK_ARROW   ARROW,   "->"
 #define TOK_AND     AND,     "&&"

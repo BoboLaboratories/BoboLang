@@ -33,9 +33,16 @@ static void print_expr(char *prefix, ast_expr *node) {
 static void compile(char *path) {
     FILE *fptr = fopen(path, "r");
     Lexer *lex = init_lexer(fptr);
+
+    token *tok;
+    do {
+        tok = scan(lex);
+        TOK_PRINT(tok);
+    } while (tok->tag != EOF);
+
+    return;
     parser *par = init_parser(lex);
     ast_program *prog = parse(par);
-
     printf("\n");
 
     int i, j;
