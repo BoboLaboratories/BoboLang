@@ -4,13 +4,13 @@ import math.pow
 
 private const g0 = __get_so_pipe()
 
-const g1 = g0
+private const g1 = g0
 
 private var a
 var b = h
 private var c
 
-private fun move(const x, y = t(x, y()), offset = o) {
+private fun move(n, const x, y = t(x, y()), offset = o) {
     var a
     a = b
 
@@ -26,3 +26,34 @@ private fun send(a, b, c, d = r, k = f) {
 native fun __get_so_pipe(t)
 
 private native fun println(x, y = t)
+
+/*
+
+    fun range(begin, end, step ?= null) {
+        const type = typeof(begin)
+
+        check {
+            type != typeof(end)                       -> // error
+            step != null && (type != typeof(step))    -> // error
+        }
+
+        (step == null) -> match (type) {
+            :int    -> step = 1
+            :double -> step = 1.0
+            _       -> error("unsupported range type #{type}")
+        }
+    }
+
+    // check construct
+    check {
+        n == 0 -> io.println("zero")
+        n < 0  -> io.println("negative")
+        true   -> io.println("positive")
+    }
+
+    // foreach
+    for (elem : list) {
+        io.println(elem)
+    }
+
+*/

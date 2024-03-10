@@ -8,7 +8,7 @@
 typedef struct lexer lexer;
 
 lexer *init_lexer(FILE *fptr);
-token *scan(lexer *lexer);
-void free_lexer(lexer *lexer);
+token *scan(lexer *l);
+void free_lexer(lexer *l);
 
 #endif

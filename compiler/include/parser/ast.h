@@ -70,7 +70,7 @@ typedef struct {
 
 typedef struct {
     LIST_DEF(char *, u_int32_t, imports);
-    LIST_DEF(ast_program_stat *, u_int32_t, stats);
+    LIST_DEF(void *, u_int32_t, stats);
 } ast_program;
 
 #endif

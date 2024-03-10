@@ -10,16 +10,6 @@
 #include "lib/string_utils.h"
 
 
-#define INIT_NODE(node_type, ast_type, node, code)                      \
-    do {                                                                \
-        node->type = node_type;                                         \
-        {                                                               \
-            ast_type *init = node->value = malloc(sizeof(ast_type));    \
-            code                                                        \
-        }                                                               \
-    } while(0)
-
-
 struct parser {
     lexer *lexer;
     token *prev;
@@ -29,6 +19,7 @@ struct parser {
 
 
 static ast_expr *qidexprp(parser *p, char *qid);
+
 
 static void move(parser *p) {
     if (p->prev) {
@@ -59,7 +50,13 @@ static char *qidp(parser *p, char *id) {
     case DOT:
         match(p, DOT);
         match(p, ID);
-        id = realloc(id, strlen(id) + 1 /* for . */ + strlen(p->prev->lexeme) + 1 /* for \0 */);
+        size_t size = strlen(id) + 1 /* for . */ + strlen(p->prev->lexeme) + 1 /* for \0 */;
+        char *tmp = realloc(id, size);
+        if (tmp == NULL) {
+            print(E, "Could not allocate more memory\n");
+            exit(EXIT_FAILURE);
+        }
+        id = tmp;
         strcat(id, ".");
         strcat(id, p->prev->lexeme);
         qidp(p, id);
@@ -99,7 +96,8 @@ static char *qid(parser *p) {
 static ast_expr *expr(parser *p) {
     switch (p->curr->tag) {
     case ID: {
-        return qidexprp(p, qid(p));
+        char *id = qid(p);
+        return qidexprp(p, id);
     }
     default:
         print(E, "expr");
@@ -154,10 +152,10 @@ static ast_expr *qidexprp(parser *p, char *qid) {
 
     switch (p->curr->tag) {
     case LPT:
-        INIT_NODE(EXPR_INVOKE, ast_expr_invoke, node, {
-            init->qid = qid;
-            /* TODO */ invokeargs(p);
-        });
+        node->type = EXPR_INVOKE;
+        node->value = malloc(sizeof(ast_expr_invoke));
+        ((ast_expr_invoke *) node->value)->qid = qid;
+        invokeargs(p);
         return node;
     case PRIVATE:
     case NATIVE:
@@ -169,12 +167,11 @@ static ast_expr *qidexprp(parser *p, char *qid) {
     case RPT:
     case VAR:
     case ID:
-        INIT_NODE(EXPR_QID, ast_expr_qid, node, {
-           init->qid = qid;
-        });
+        node->type = EXPR_QID;
+        node->value = malloc(sizeof(ast_expr_qid));
+        ((ast_expr_qid *) node->value)->qid = qid;
         return node;
     default:
-        free(node);
         print(E, "qidexprp");
         exit(EXIT_FAILURE);
     }
@@ -194,16 +191,16 @@ static ast_expr *assign(parser *p) {
 static void qidstatp(parser *p, char *qid, ast_stat *node) {
     switch (p->curr->tag) {
     case ASSIGN:
-        INIT_NODE(STAT_VAR_ASSIGN, ast_stat_var_assign, node, {
-            init->qid = qid;
-            init->expr = assign(p);
-        });
+        node->type = STAT_VAR_ASSIGN;
+        node->value = malloc(sizeof(ast_stat_var_assign));
+        ((ast_stat_var_assign *) node->value)->qid = qid;
+        ((ast_stat_var_assign *) node->value)->expr = assign(p);
         break;
     case LPT:
-        INIT_NODE(STAT_INVOKE, ast_stat_invoke, node, {
-            init->qid = qid;
-            /* TODO */ invokeargs(p);
-        });
+        node->type = STAT_INVOKE;
+        node->value = malloc(sizeof(ast_stat_invoke));
+        ((ast_stat_invoke *) node->value)->qid = qid;
+        invokeargs(p);
         break;
     default:
         print(E, "qidstatp");
@@ -265,11 +262,12 @@ static ast_stat *stat(parser *p) {
         node->type = STAT_VAR_DECL;
         node->value = statvardecl(p);
         return node;
-    case ID:
-        qidstatp(p, qid(p), node);
+    case ID: {
+        char *_qid = qid(p);
+        qidstatp(p, _qid, node);
         return node;
+    }
     default:
-        free(node);
         print(E, "stat");
         exit(EXIT_FAILURE);
     }
@@ -342,6 +340,7 @@ static void fundefarglistp(parser *p, ast_fundef *fun) {
 }
 
 static void funarglistp(parser *p, ast_fundef *fun, ast_funarg *arg) {
+    /* arg needs to be added regardless if its follows */
     LIST_ADD(fun->args, arg);
 
     switch (p->curr->tag) {
@@ -392,7 +391,6 @@ static ast_fundef *funsig(parser *p) {
 
         match(p, LPT);
         funarglist(p, node);
-
         match(p, RPT);
         return node;
     default:
@@ -444,10 +442,9 @@ static void privatefilep(parser *p, ast_program_stat *node) {
         break;
     case NATIVE:
     case FUN:
-        INIT_NODE(PROGRAM_FUNDEF, ast_fundef, node, {
-            *init = *((p->curr->tag == NATIVE) ? nativefundef(p) : fundef(p));
-            init->is_private = true;
-        });
+        node->type = PROGRAM_FUNDEF;
+        node->value = (p->curr->tag == NATIVE) ? nativefundef(p) : fundef(p);
+        ((ast_fundef *) node->value)->is_private = true;
         break;
     default:
         print(E, "privatefilep");
@@ -462,7 +459,6 @@ static void filep(parser *p) {
     case PRIVATE:
         match(p, PRIVATE);
         privatefilep(p, node);
-
         LIST_ADD(p->program->stats, node);
         filep(p);
         break;
@@ -482,9 +478,9 @@ static void filep(parser *p) {
         filep(p);
         break;
     case EOF:
+        free(node);
         break;
     default:
-        free(node);
         print(E, "filep");
         exit(EXIT_FAILURE);
     }

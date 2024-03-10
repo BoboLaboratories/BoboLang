@@ -17,49 +17,51 @@ struct lexer {
 
 
 /* reads the next char from file */
-#define next()                  (lexer->peek = fgetc(lexer->fptr))
+#define next()                  (l->peek = fgetc(l->fptr))
 
 /* make token with well known lexeme */
-#define mktok(tok)              make_token(lexer, tok, false)
+#define mktok(tok)              make_token(l, tok, false)
 
 /* make token with well known lexeme and reset peek */
-#define mktokr(tok)             make_token(lexer, tok, true)
+#define mktokr(tok)             make_token(l, tok, true)
 
 /* make token with the given tag and lexeme */
-#define mktokl(tag, lexeme)     make_token(lexer, tag, lexeme, false)
+#define mktokl(tag, lexeme)     make_token(l, tag, lexeme, false)
 
 /* make token with the given tag and lexeme and reset peek */
-#define mktoklr(tag, lexeme)    make_token(lexer, tag, lexeme, true)
+#define mktoklr(tag, lexeme)    make_token(l, tag, lexeme, true)
 
 
-static token *make_token(lexer *lexer, int tag, char *lexeme, bool reset);
-static int is_whitespace(lexer *lexer);
+static token *make_token(lexer *l, int tag, char *lexeme, bool reset);
+static void single_line_comment(lexer *l);
+static void multi_line_comment(lexer *l);
+static int is_whitespace(lexer *l);
 
 
 lexer *init_lexer(FILE *fptr) {
-    lexer *lex = malloc(sizeof(lexer));
+    lexer *l = malloc(sizeof(lexer));
 
-    lex->fptr = fptr;
-    lex->peek = ' ';
-    lex->line = 1;
+    l->fptr = fptr;
+    l->peek = ' ';
+    l->line = 1;
 
-    return lex;
+    return l;
 }
 
-void free_lexer(lexer *lexer) {
-    fclose(lexer->fptr);
-    free(lexer);
+void free_lexer(lexer *l) {
+    fclose(l->fptr);
+    free(l);
 }
 
-token *scan(lexer *lexer) {
-    while (is_whitespace(lexer)) {
-        if (lexer->peek == '\n') {
-            lexer->line++;
+token *scan(lexer *l) {
+    while (is_whitespace(l)) {
+        if (l->peek == '\n') {
+            l->line++;
         }
         next();
     }
 
-    switch (lexer->peek) {
+    switch (l->peek) {
     case '(':
         return mktokr(TOK_LPT);
     case ')':
@@ -75,7 +77,16 @@ token *scan(lexer *lexer) {
     case '+':
         return mktokr(TOK_PLUS);
     case '/':
-        return mktokr(TOK_DIV);
+        switch (next()) {
+        case '/':
+            single_line_comment(l);
+            return scan(l);
+        case '*':
+            multi_line_comment(l);
+            return scan(l);
+        default:
+            return mktok(TOK_DIV);
+        }
     case ',':
         return mktokr(TOK_COMMA);
     case '<':
@@ -90,40 +101,40 @@ token *scan(lexer *lexer) {
         return (next() == '>') ? mktokr(TOK_ARROW) : mktok(TOK_MINUS);
     case '&':
         if (next() != '&') {
-            print(E, "illegal symbol &%c at line %d\n", lexer->peek, lexer->line);
+            print(E, "illegal symbol &%c at line %d\n", l->peek, l->line);
             exit(EXIT_FAILURE);
         }
         return mktokr(TOK_AND);
     case '|':
         if (next() != '|') {
-            print(E, "illegal symbol |%c at line %d\n", lexer->peek, lexer->line);
+            print(E, "illegal symbol |%c at line %d\n", l->peek, l->line);
             exit(EXIT_FAILURE);
         }
         return mktokr(TOK_OR);
     case EOF:
         return mktokl(EOF, NULL);
     default:
-        if (isalpha(lexer->peek) || lexer->peek == '_') {
-            int underscore_only = lexer->peek == '_';
-            long start = ftell(lexer->fptr) - 1;
+        if (isalpha(l->peek) || l->peek == '_') {
+            int underscore_only = l->peek == '_';
+            long start = ftell(l->fptr) - 1;
             do {
-                underscore_only &= lexer->peek == '_';
+                underscore_only &= l->peek == '_';
                 next();
-            } while (isalnum(lexer->peek) || lexer->peek == '_');
+            } while (isalnum(l->peek) || l->peek == '_');
 
-            long end = ftell(lexer->fptr);
-            if (lexer->peek != EOF) {
+            long end = ftell(l->fptr);
+            if (l->peek != EOF) {
                 end--;
             }
             long len = end - start;
             char *lexeme = malloc(len + 1);
 
-            fseek(lexer->fptr, start, SEEK_SET);
-            fread(lexeme, len, 1, lexer->fptr);
+            fseek(l->fptr, start, SEEK_SET);
+            fread(lexeme, len, 1, l->fptr);
             *(lexeme + len) = '\0';
 
             if (underscore_only) {
-                print(E, "illegal symbol %s at line %d\n", lexeme, lexer->line);
+                print(E, "illegal symbol %s at line %d\n", lexeme, l->line);
                 exit(EXIT_FAILURE);
             } else {
                 token *ret;
@@ -153,25 +164,58 @@ token *scan(lexer *lexer) {
             }
         }
 
-        print(E, "erroneous symbol %c at line %d\n", lexer->peek, lexer->line);
+        print(E, "erroneous symbol %c at line %d\n", l->peek, l->line);
         exit(EXIT_FAILURE);
     }
 }
 
-static int is_whitespace(lexer *lexer) {
-    return lexer->peek == ' '
-        || lexer->peek == '\t'
-        || lexer->peek == '\n'
-        || lexer->peek == '\r';
+static void multi_line_comment(lexer *l) {
+    int line = l->line;
+    int state = 0;
+
+    do {
+        next();
+        if (state == 0) {
+            if (l->peek == '*') {
+                state = 1;
+            }
+        } else {
+            if (l->peek == '/') {
+                state = 2;
+            } else if (l->peek != '*') {
+                state = 0;
+            }
+        }
+    } while (state != 2 && l->peek != EOF);
+
+    if (state == 2) {
+        l->peek = ' ';
+    } else {
+        print(E, "unclosed multi line comment starting at line %d\n", line);
+        exit(EXIT_FAILURE);
+    }
 }
 
-static token *make_token(lexer *lexer, int tag, char *lexeme, bool reset) {
+static void single_line_comment(lexer *l) {
+    do {
+        next();
+    } while (l->peek != '\n' && l->peek != EOF);
+}
+
+static int is_whitespace(lexer *l) {
+    return l->peek == ' '
+           || l->peek == '\t'
+           || l->peek == '\n'
+           || l->peek == '\r';
+}
+
+static token *make_token(lexer *l, int tag, char *lexeme, bool reset) {
     if (reset) {
-        lexer->peek = ' ';
+        l->peek = ' ';
     }
 
     token *tok = malloc(sizeof(token));
-    tok->line = lexer->line;
+    tok->line = l->line;
     tok->lexeme = lexeme;
     tok->tag = tag;
 

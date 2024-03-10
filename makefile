@@ -7,16 +7,13 @@ override CC = gcc
 
 SHARED = shared/*.h
 
-MAIN = vm sandbox
+MAIN = vm
 LIBS = console string_utils
 
 MAIN_BINARIES = $(addprefix bin/,$(MAIN))
 LIBS_BINARIES = $(addprefix bin/lib/,$(LIBS))
 
 all: $(MAIN_BINARIES) boboc
-
-bin/sandbox: sandbox/*.c | makedir
-	$(CC) $(CFLAGS) $< -o $@
 
 bin/%: %/*.c %/*.h $(SHARED) | makedir
 	$(CC) $(CFLAGS) $(filter %.c,$^) -o $@
