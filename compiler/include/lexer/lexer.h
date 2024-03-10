@@ -5,10 +5,10 @@
 
 #include "token.h"
 
-typedef struct lexer lexer;
+typedef struct lexer Lexer;
 
-lexer *init_lexer(FILE *fptr);
-token *scan(lexer *l);
-void free_lexer(lexer *l);
+Lexer *init_lexer(FILE *fptr);
+token *scan(Lexer *l);
+void free_lexer(Lexer *l);
 
 #endif

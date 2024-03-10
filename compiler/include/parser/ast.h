@@ -3,16 +3,12 @@
 
 #include <stdbool.h>
 #include <sys/types.h>
-#include "macrolist.h"
+
+#include "lib/structures/list.h"
 
 typedef struct {
     char *qid;
 } ast_expr_qid;
-
-typedef struct {
-    char *qid;
-    /* TODO: arglist */
-} ast_expr_invoke;
 
 typedef struct {
     enum {
@@ -24,6 +20,12 @@ typedef struct {
 
 typedef struct {
     char *qid;
+    List *args;
+} ast_expr_invoke;
+
+typedef struct {
+    char *qid;
+    List *args;
 } ast_stat_invoke;
 
 typedef struct {
@@ -57,7 +59,7 @@ typedef struct {
     bool is_private;
     bool is_native;
     char *name;
-    LIST_DEF(ast_funarg *, u_int8_t, args);
+    List *args;
 } ast_fundef;
 
 typedef struct {
@@ -69,8 +71,8 @@ typedef struct {
 } ast_program_stat;
 
 typedef struct {
-    LIST_DEF(char *, u_int32_t, imports);
-    LIST_DEF(void *, u_int32_t, stats);
+    List *imports;
+    List *stats;
 } ast_program;
 
 #endif

@@ -8,7 +8,7 @@
 
 typedef struct parser parser;
 
-parser *init_parser(lexer *lexer);
+parser *init_parser(Lexer *lexer);
 ast_program *parse(parser *parser);
 
 #endif

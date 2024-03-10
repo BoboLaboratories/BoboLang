@@ -32,14 +32,14 @@ struct lexer {
 #define mktoklr(tag, lexeme)    make_token(l, tag, lexeme, true)
 
 
-static token *make_token(lexer *l, int tag, char *lexeme, bool reset);
-static void single_line_comment(lexer *l);
-static void multi_line_comment(lexer *l);
-static int is_whitespace(lexer *l);
+static token *make_token(Lexer *l, int tag, char *lexeme, bool reset);
+static void single_line_comment(Lexer *l);
+static void multi_line_comment(Lexer *l);
+static int is_whitespace(Lexer *l);
 
 
-lexer *init_lexer(FILE *fptr) {
-    lexer *l = malloc(sizeof(lexer));
+Lexer *init_lexer(FILE *fptr) {
+    Lexer *l = malloc(sizeof(Lexer));
 
     l->fptr = fptr;
     l->peek = ' ';
@@ -48,12 +48,12 @@ lexer *init_lexer(FILE *fptr) {
     return l;
 }
 
-void free_lexer(lexer *l) {
+void free_lexer(Lexer *l) {
     fclose(l->fptr);
     free(l);
 }
 
-token *scan(lexer *l) {
+token *scan(Lexer *l) {
     while (is_whitespace(l)) {
         if (l->peek == '\n') {
             l->line++;
@@ -169,7 +169,7 @@ token *scan(lexer *l) {
     }
 }
 
-static void multi_line_comment(lexer *l) {
+static void multi_line_comment(Lexer *l) {
     int line = l->line;
     int state = 0;
 
@@ -196,20 +196,20 @@ static void multi_line_comment(lexer *l) {
     }
 }
 
-static void single_line_comment(lexer *l) {
+static void single_line_comment(Lexer *l) {
     do {
         next();
     } while (l->peek != '\n' && l->peek != EOF);
 }
 
-static int is_whitespace(lexer *l) {
+static int is_whitespace(Lexer *l) {
     return l->peek == ' '
            || l->peek == '\t'
            || l->peek == '\n'
            || l->peek == '\r';
 }
 
-static token *make_token(lexer *l, int tag, char *lexeme, bool reset) {
+static token *make_token(Lexer *l, int tag, char *lexeme, bool reset) {
     if (reset) {
         l->peek = ' ';
     }

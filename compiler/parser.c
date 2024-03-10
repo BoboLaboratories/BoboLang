@@ -1,17 +1,19 @@
 #include <stdlib.h>
 #include <string.h>
 #include <malloc.h>
+#include <errno.h>
+#include <sys/types.h>
 
-#include "macrolist.h"
 #include "lexer/lexer.h"
 #include "parser/ast.h"
 #include "parser/parser.h"
 #include "lib/console.h"
 #include "lib/string_utils.h"
+#include "lib/structures/list.h"
 
 
 struct parser {
-    lexer *lexer;
+    Lexer *lexer;
     token *prev;
     token *curr;
     ast_program *program;
@@ -42,6 +44,21 @@ static void match(parser *p, int tag) {
         print(E, "--- unexpected token, expected %d\n", tag);
         TOK_PRINT(p->curr);
         print(E, "---");
+    }
+}
+
+#define ERR_TOO_MANY_IMPORTS    "Too many imports"
+#define ERR_PROGRAM_TOO_BIG     "Program too big"
+#define ERR_TOO_MANY_ARGUMENTS  "Too many arguments"
+
+static void ast_add(List *list, void *node, char *errmsg) {
+    if (!list_add(list, node)) {
+        if (errno == ENOMEM) {
+            print(E, "Insufficient memory in the system\n");
+        } else {
+            print(E, "%s\n", errmsg);
+        }
+        abort();
     }
 }
 
@@ -105,12 +122,12 @@ static ast_expr *expr(parser *p) {
     }
 }
 
-static void invokearglistp(parser *p) {
+static void invokearglistp(parser *p, List *args) {
     switch (p->curr->tag) {
     case COMMA:
         match(p, COMMA);
-        expr(p);
-        invokearglistp(p);
+        list_add(args, expr(p));
+        invokearglistp(p, args);
         break;
     case RPT:
         break;
@@ -120,27 +137,30 @@ static void invokearglistp(parser *p) {
     }
 }
 
-static void invokearglist(parser *p) {
+static List *invokearglist(parser *p) {
     switch (p->curr->tag) {
-    case ID:
-        expr(p);
-        invokearglistp(p);
-        break;
+    case ID: {
+        List *args;
+        list_create(&args, sizeof(u_int8_t));
+        list_add(args, expr(p));
+        invokearglistp(p, args);
+        return args;
+    }
     case RPT:
-        break;
+        return NULL;
     default:
         print(E, "invokearglist");
         exit(EXIT_FAILURE);
     }
 }
 
-static void invokeargs(parser *p) {
+static List *invokeargs(parser *p) {
     switch (p->curr->tag) {
     case LPT:
         match(p, LPT);
-        invokearglist(p);
+        List *args = invokearglist(p);
         match(p, RPT);
-        break;
+        return args;
     default:
         print(E, "invokeargs");
         exit(EXIT_FAILURE);
@@ -155,7 +175,7 @@ static ast_expr *qidexprp(parser *p, char *qid) {
         node->type = EXPR_INVOKE;
         node->value = malloc(sizeof(ast_expr_invoke));
         ((ast_expr_invoke *) node->value)->qid = qid;
-        invokeargs(p);
+        ((ast_expr_invoke *) node->value)->args = invokeargs(p);
         return node;
     case PRIVATE:
     case NATIVE:
@@ -328,7 +348,7 @@ static void fundefarglistp(parser *p, ast_fundef *fun) {
         match(p, COMMA);
         ast_funarg *node = funarg(p);
         node->expr = assign(p);
-        LIST_ADD(fun->args, node);
+        list_add(fun->args, node);
         fundefarglistp(p, fun);
         break;
     case RPT:
@@ -341,7 +361,7 @@ static void fundefarglistp(parser *p, ast_fundef *fun) {
 
 static void funarglistp(parser *p, ast_fundef *fun, ast_funarg *arg) {
     /* arg needs to be added regardless if its follows */
-    LIST_ADD(fun->args, arg);
+    list_add(fun->args, arg);
 
     switch (p->curr->tag) {
     case COMMA:
@@ -387,7 +407,7 @@ static ast_fundef *funsig(parser *p) {
         node->name = strdup(p->prev->lexeme);
         node->is_private = false;
         node->is_native = false;
-        LIST_INIT(node, args);
+        list_create(&node->args, sizeof(u_int8_t));
 
         match(p, LPT);
         funarglist(p, node);
@@ -452,6 +472,8 @@ static void privatefilep(parser *p, ast_program_stat *node) {
     }
 }
 
+
+
 static void filep(parser *p) {
     ast_program_stat *node = malloc(sizeof(ast_program_stat));
 
@@ -459,14 +481,14 @@ static void filep(parser *p) {
     case PRIVATE:
         match(p, PRIVATE);
         privatefilep(p, node);
-        LIST_ADD(p->program->stats, node);
+        ast_add(p->program->stats, node, ERR_PROGRAM_TOO_BIG);
         filep(p);
         break;
     case NATIVE:
     case FUN:
         node->type = PROGRAM_FUNDEF;
         node->value = (p->curr->tag == NATIVE) ? nativefundef(p) : fundef(p);
-        LIST_ADD(p->program->stats, node);
+        ast_add(p->program->stats, node, ERR_PROGRAM_TOO_BIG);
         filep(p);
         break;
     case CONST:
@@ -474,7 +496,7 @@ static void filep(parser *p) {
     case ID:
         node->type = PROGRAM_STAT;
         node->value = stat(p);
-        LIST_ADD(p->program->stats, node);
+        ast_add(p->program->stats, node, ERR_PROGRAM_TOO_BIG);
         filep(p);
         break;
     case EOF:
@@ -490,8 +512,8 @@ static void importlist(parser *p) {
     switch (p->curr->tag) {
     case IMPORT:
         match(p, IMPORT);
-        char *id = qid(p);
-        LIST_ADD(p->program->imports, id);
+        char *_qid = qid(p);
+        ast_add(p->program->imports, _qid, ERR_TOO_MANY_IMPORTS);
         importlist(p);
         break;
     case PRIVATE:
@@ -528,7 +550,7 @@ static void file(parser *p) {
     }
 }
 
-parser *init_parser(lexer *lexer) {
+parser *init_parser(Lexer *lexer) {
     parser *p = malloc(sizeof(parser));
 
     p->lexer = lexer;
@@ -536,8 +558,9 @@ parser *init_parser(lexer *lexer) {
     p->curr = malloc(sizeof(token));
 
     p->program = malloc(sizeof(ast_program));
-    LIST_INIT(p->program, imports);
-    LIST_INIT(p->program, stats);
+    list_create(&p->program->imports, sizeof(u_int32_t));
+    print(D, "%p\n", p->program->imports);
+    list_create(&p->program->stats, sizeof(u_int32_t));
 
     return p;
 }

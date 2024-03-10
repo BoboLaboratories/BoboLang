@@ -10,7 +10,7 @@ private var a
 var b = h
 private var c
 
-private fun move(n, const x, y = t(x, y()), offset = o) {
+private fun move(const x, y = x(y, z(a, b(), c(d(e)))), offset = o) {
     var a
     a = b
 
