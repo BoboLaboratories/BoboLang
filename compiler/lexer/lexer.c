@@ -8,7 +8,7 @@
 #include "lib/console.h"
 #include "numeric_literal.h"
 
-#define LEXER_RESET 0
+#define LEXER_RESET '\0'
 
 static void single_line_comment(Lexer *lexer);
 
@@ -36,19 +36,22 @@ char next(Lexer *lexer) {
         lexer->column++;
     }
 
-    lexer->peek = (char) fgetc(lexer->fptr);
-
     if (lexer->peek == '\n') {
-        lexer->line_start = ftell(lexer->fptr) + 1;
-        lexer->column = 0;
+        lexer->line_start = ftell(lexer->fptr);
+        lexer->column = 1;
         lexer->line++;
     }
+
+    lexer->peek = (char) fgetc(lexer->fptr);
 
     return lexer->peek;
 }
 
 token *scan(Lexer *lexer) {
-    while (lexer->peek == LEXER_RESET || is_whitespace(lexer->peek)) {
+    if (lexer->peek == LEXER_RESET) {
+        next(lexer);
+    }
+    while (is_whitespace(lexer->peek)) {
         next(lexer);
     }
 
@@ -69,7 +72,7 @@ token *scan(Lexer *lexer) {
         return mktokr(TOK_MUL);
     case '+': {
         token *numeric_literal = scan_numeric_literal(lexer, INTEGER_SIGN);
-        return numeric_literal != NULL ? numeric_literal : mktok(TOK_PLUS);
+        return numeric_literal != NULL ? numeric_literal : mktokr(TOK_PLUS);
     }
     case '/':
         switch (next(lexer)) {
@@ -278,7 +281,7 @@ void lexer_err(Lexer *lexer, char *msg) {
     }
 
     printf("\n\t");
-    for (i = 0; i < err_column; i++) {
+    for (i = 0; i < err_column - 1; i++) {
         printf(" ");
     }
     printf("^\n");
