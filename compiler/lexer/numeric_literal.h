@@ -3,14 +3,12 @@
 
 typedef enum {
     INTEGER_SIGN,
-    INTEGER,
+    INTEGER_PART,
     IMPLICIT_INTEGER_PART,
     INCOMPLETE_DECIMAL,
-    DECIMAL,
+    DECIMAL_PART,
     EXPONENT_SIGN,
-    EXPONENT,
-    ACCEPTED,
-    REJECTED
+    EXPONENT_PART
 } NumericLiteralState;
 
 token *scan_numeric_literal(Lexer *lexer, NumericLiteralState state);

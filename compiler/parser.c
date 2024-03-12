@@ -1,7 +1,8 @@
+#include <math.h>
+#include <errno.h>
 #include <stdlib.h>
 #include <string.h>
 #include <malloc.h>
-#include <errno.h>
 #include <sys/types.h>
 
 #include "lexer/lexer.h"
@@ -110,12 +111,31 @@ static char *qid(parser *p) {
     }
 }
 
+static ast_expr *literal(parser *p) {
+
+    switch (p->curr->tag) {
+    case NUM:
+        match(p, NUM);
+        double dvalue = strtod(p->prev->lexeme, NULL); /* TODO strtod error checking */
+        long lvalue = (long) dvalue;
+        ast_expr *node = malloc(sizeof(ast_expr));
+        node->type = EXPR_NUMERIC_LITERAL;
+        node->value = malloc(sizeof(ast_expr_numeric_literal));
+        ((ast_expr_numeric_literal *) node->value)->type = /* TODO */
+    default:
+        print(E, "literal");
+        exit(EXIT_FAILURE);
+    }
+}
+
 static ast_expr *expr(parser *p) {
     switch (p->curr->tag) {
     case ID: {
         char *id = qid(p);
         return qidexprp(p, id);
     }
+    case NUM:
+        return literal(p);
     default:
         print(E, "expr");
         exit(EXIT_FAILURE);

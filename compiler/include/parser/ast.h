@@ -11,17 +11,26 @@ typedef struct {
 } ast_expr_qid;
 
 typedef struct {
-    enum {
-        EXPR_QID,
-        EXPR_INVOKE
-    } type;
-    void *value;
-} ast_expr;
-
-typedef struct {
     char *qid;
     List *args;
 } ast_expr_invoke;
+
+typedef struct {
+    enum {
+        EXPR_NUMERIC_LITERAL_DOUBLE,
+        EXPR_NUMERIC_LITERAL_INTEGER
+    } type;
+    u_int64_t value;
+} ast_expr_numeric_literal;
+
+typedef struct {
+    enum {
+        EXPR_QID,
+        EXPR_INVOKE,
+        EXPR_NUMERIC_LITERAL
+    } type;
+    void *value;
+} ast_expr;
 
 typedef struct {
     char *qid;

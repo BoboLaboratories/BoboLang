@@ -35,7 +35,7 @@ token *scan_numeric_literal(Lexer *lexer, NumericLiteralState state) {
                  * we read 'n', where n is a digit therefore
                  * we surely have a valid signed numeric literal
                  */
-                state = INTEGER;
+                state = INTEGER_PART;
             } else {
                 /*
                  * after reading '+' or '-' we found nothing
@@ -49,7 +49,7 @@ token *scan_numeric_literal(Lexer *lexer, NumericLiteralState state) {
              * we read "n", "+n" or "-n" where n
              * is made up of one or more digits
              */
-        case INTEGER:
+        case INTEGER_PART:
             if (c == '.') {
                 /*
                  * read '.' so we need to read the decimal part
@@ -65,7 +65,7 @@ token *scan_numeric_literal(Lexer *lexer, NumericLiteralState state) {
                  * we read one more digit therefore
                  * we continue lexing the integer part
                  */
-                state = INTEGER;
+                state = INTEGER_PART;
             } else if (is_whitespace(c)) {
                 return accept(lexer);
             } else {
@@ -82,7 +82,7 @@ token *scan_numeric_literal(Lexer *lexer, NumericLiteralState state) {
                  * we read a digit therefore we know
                  * this is now a decimal number "0.n"
                  */
-                state = DECIMAL;
+                state = DECIMAL_PART;
             } else {
                 /*
                  * after reading '.' we found nothing that
@@ -102,7 +102,7 @@ token *scan_numeric_literal(Lexer *lexer, NumericLiteralState state) {
                  * we read a digit therefore we know
                  * this is now a valid decimal number
                  */
-                state = DECIMAL;
+                state = DECIMAL_PART;
             } else {
                 reject(lexer);
             }
@@ -110,13 +110,13 @@ token *scan_numeric_literal(Lexer *lexer, NumericLiteralState state) {
             /*
              * we read "n.m", "+n.m" or "-n.m"
              */
-        case DECIMAL:
+        case DECIMAL_PART:
             if (isdigit(c)) {
                 /*
                  * we read one more digit therefore
                  * we continue lexing the decimal part
                  */
-                state = DECIMAL;
+                state = DECIMAL_PART;
             } else if (tolower(c) == 'e') {
                 /*
                  * we read 'e' or 'E' so we need to read the exponent
@@ -139,7 +139,7 @@ token *scan_numeric_literal(Lexer *lexer, NumericLiteralState state) {
                  * (the latter implies a positive exponent)
                  * therefore we continue lexing the exponent
                  */
-                state = EXPONENT;
+                state = EXPONENT_PART;
             } else {
                 reject(lexer);
             }
@@ -147,13 +147,13 @@ token *scan_numeric_literal(Lexer *lexer, NumericLiteralState state) {
             /*
              * we read "nek", "+nek", "-nek", "n.mek", "+n.mek" or "-n.mek"
              */
-        case EXPONENT:
+        case EXPONENT_PART:
             if (isdigit(c)) {
                 /*
                  * we read one more digit therefore
                  * we continue lexing the exponent
                  */
-                state = EXPONENT;
+                state = EXPONENT_PART;
             } else if (is_whitespace(c)) {
                 return accept(lexer);
             } else {
