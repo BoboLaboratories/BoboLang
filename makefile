@@ -21,7 +21,7 @@ bin/%: %/*.c %/*.h $(SHARED) | makedir
 # Directive for building the compiler
 COMPILER_SHARED_LIBS = console string_utils list
 COMPILER_LIBS = compiler/lib/*/*.c compiler/lib/*/*.h
-boboc: compiler/*.c compiler/include/*/*.h $(COMPILER_LIBS) $(COMPILER_SHARED_LIBS)
+boboc: compiler/*.c compiler/*/*.c compiler/include/*/*.h $(COMPILER_LIBS) $(COMPILER_SHARED_LIBS)
 	$(CC) $(CFLAGS) -Icompiler/include $(filter %.c,$^) $(addprefix -l:,$(COMPILER_SHARED_LIBS)) -o bin/$@ -lm
 
 list: shared/impl/structures/list.c shared/lib/structures/list.h | makedir

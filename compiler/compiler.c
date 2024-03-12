@@ -1,5 +1,7 @@
 #include <stdio.h>
+#include <malloc.h>
 
+#include "meta.h"
 #include "lib/console.h"
 #include "parser/parser.h"
 
@@ -30,9 +32,12 @@ static void print_expr(char *prefix, ast_expr *node) {
     }
 }
 
-static void compile(char *path) {
-    FILE *fptr = fopen(path, "r");
-    Lexer *lex = init_lexer(fptr);
+static void compile(char *pathname) {
+    Meta *meta = malloc(sizeof(Meta));
+    meta->pathname = pathname;
+
+
+    Lexer *lex = init_lexer(meta);
 
     token *tok;
     do {

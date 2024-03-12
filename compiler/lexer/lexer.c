@@ -3,53 +3,12 @@
 #include <stdlib.h>
 #include <string.h>
 #include <malloc.h>
-#include <stdbool.h>
 
-#include "lexer/token.h"
-#include "lexer/lexer.h"
+#include "common.h"
 #include "lib/console.h"
+#include "numeric_literal.h"
 
-struct lexer {
-    FILE *fptr;
-    long buf_start;
-    char peek;
-    int line;
-};
-
-typedef enum {
-    INTEGER_SIGN,
-    INTEGER,
-    IMPLICIT_INTEGER_PART,
-    INCOMPLETE_DECIMAL,
-    DECIMAL,
-    EXPONENT_SIGN,
-    EXPONENT,
-    ACCEPTED,
-    REJECTED
-} NumericLiteralState;
-
-
-/* reads the next char from file */
-#define next()                  (lexer->peek = fgetc(lexer->fptr))
-
-/* make token with well known lexeme */
-#define mktok(tok)              make_token(lexer, tok, false)
-
-/* make token with well known lexeme and reset peek */
-#define mktokr(tok)             make_token(lexer, tok, true)
-
-/* make token with the given tag and lexeme */
-#define mktokl(tag, lexeme)     make_token(lexer, tag, lexeme, false)
-
-/* make token with the given tag and lexeme and reset peek */
-#define mktoklr(tag, lexeme)    make_token(lexer, tag, lexeme, true)
-
-
-static token *make_token(Lexer *lexer, int tag, char *lexeme, bool reset);
-
-static void start_buffering(Lexer *lexer);
-
-static char *get_buffer(Lexer *lexer);
+#define LEXER_RESET 0
 
 static void single_line_comment(Lexer *lexer);
 
@@ -57,28 +16,40 @@ static void multi_line_comment(Lexer *lexer);
 
 static token *scan_id(Lexer *lexer);
 
-static token *scan_numeric_literal(Lexer *lexer, NumericLiteralState state);
+static int is_new_line(char c);
 
-static int is_whitespace(Lexer *lexer);
-
-
-Lexer *init_lexer(FILE *fptr) {
+Lexer *init_lexer(Meta *meta) {
     Lexer *lexer = malloc(sizeof(Lexer));
 
+    lexer->fptr = fopen(meta->pathname, "r");
+    lexer->meta = meta;
+    lexer->peek = LEXER_RESET;
     lexer->buf_start = -1;
-    lexer->fptr = fptr;
-    lexer->peek = ' ';
     lexer->line = 1;
+    lexer->column = 1;
 
     return lexer;
 }
 
+char next(Lexer *lexer) {
+    if (lexer->peek != LEXER_RESET) {
+        lexer->column++;
+    }
+
+    lexer->peek = (char) fgetc(lexer->fptr);
+
+    if (lexer->peek == '\n') {
+        lexer->line_start = ftell(lexer->fptr) + 1;
+        lexer->column = 0;
+        lexer->line++;
+    }
+
+    return lexer->peek;
+}
+
 token *scan(Lexer *lexer) {
-    while (is_whitespace(lexer)) {
-        if (lexer->peek == '\n') {
-            lexer->line++;
-        }
-        next();
+    while (lexer->peek == LEXER_RESET || is_whitespace(lexer->peek)) {
+        next(lexer);
     }
 
     switch (lexer->peek) {
@@ -101,7 +72,7 @@ token *scan(Lexer *lexer) {
         return numeric_literal != NULL ? numeric_literal : mktok(TOK_PLUS);
     }
     case '/':
-        switch (next()) {
+        switch (next(lexer)) {
         case '/':
             single_line_comment(lexer);
             return scan(lexer);
@@ -114,29 +85,29 @@ token *scan(Lexer *lexer) {
     case ',':
         return mktokr(TOK_COMMA);
     case '<':
-        return (next() == '=') ? mktokr(TOK_LE) : mktok(TOK_LT);
+        return (next(lexer) == '=') ? mktokr(TOK_LE) : mktok(TOK_LT);
     case '>':
-        return (next() == '=') ? mktokr(TOK_GE) : mktok(TOK_GT);
+        return (next(lexer) == '=') ? mktokr(TOK_GE) : mktok(TOK_GT);
     case '!':
-        return (next() == '=') ? mktokr(TOK_NEQ) : mktok(TOK_NOT);
+        return (next(lexer) == '=') ? mktokr(TOK_NEQ) : mktok(TOK_NOT);
     case '=':
-        return (next() == '=') ? mktokr(TOK_EQ) : mktok(TOK_ASSIGN);
+        return (next(lexer) == '=') ? mktokr(TOK_EQ) : mktok(TOK_ASSIGN);
     case '-': {
         token *numeric_literal = scan_numeric_literal(lexer, INTEGER_SIGN);
         if (numeric_literal != NULL) {
             return numeric_literal;
         } else {
-            return (next() == '>') ? mktokr(TOK_ARROW) : mktok(TOK_MINUS);
+            return (next(lexer) == '>') ? mktokr(TOK_ARROW) : mktok(TOK_MINUS);
         }
     }
     case '&':
-        if (next() != '&') {
+        if (next(lexer) != '&') {
             print(E, "illegal symbol &%c at line %d\n", lexer->peek, lexer->line);
             exit(EXIT_FAILURE);
         }
         return mktokr(TOK_AND);
     case '|':
-        if (next() != '|') {
+        if (next(lexer) != '|') {
             print(E, "illegal symbol |%c at line %d\n", lexer->peek, lexer->line);
             exit(EXIT_FAILURE);
         }
@@ -153,18 +124,16 @@ token *scan(Lexer *lexer) {
             }
         }
 
-        DEBUG_BREAKPOINT;
-
         print(E, "erroneous symbol %c at line %d\n", lexer->peek, lexer->line);
         exit(EXIT_FAILURE);
     }
 }
 
-static void start_buffering(Lexer *lexer) {
+void start_buffering(Lexer *lexer) {
     lexer->buf_start = ftell(lexer->fptr) - 1;
 }
 
-static char *get_buffer(Lexer *lexer) {
+char *get_buffer(Lexer *lexer) {
     if (lexer->buf_start == -1) {
         print(E, "Never started buffering\n");
         abort();
@@ -193,16 +162,16 @@ void free_lexer(Lexer *lexer) {
 
 static void single_line_comment(Lexer *lexer) {
     do {
-        next();
+        next(lexer);
     } while (lexer->peek != '\n' && lexer->peek != EOF);
 }
 
 static void multi_line_comment(Lexer *lexer) {
-    int line = lexer->line;
+    unsigned int line = lexer->line;
     int state = 0;
 
     do {
-        next();
+        next(lexer);
         if (state == 0) {
             if (lexer->peek == '*') {
                 state = 1;
@@ -230,7 +199,7 @@ static token *scan_id(Lexer *lexer) {
     int underscore_only = lexer->peek == '_';
     do {
         underscore_only &= lexer->peek == '_';
-        next();
+        next(lexer);
     } while (isalnum(lexer->peek) || lexer->peek == '_');
 
     char *lexeme = get_buffer(lexer);
@@ -266,98 +235,18 @@ static token *scan_id(Lexer *lexer) {
     }
 }
 
-static token *scan_numeric_literal(Lexer *lexer, NumericLiteralState state) {
-    start_buffering(lexer);
 
-    while (state != ACCEPTED && state != REJECTED) {
-        const char c = next();
-        switch (state) {
-        case INTEGER_SIGN:
-            if (c == '.') {
-                state = IMPLICIT_INTEGER_PART;
-            } else if (isdigit(c)) {
-                state = INTEGER;
-            } else {
-                return NULL;
-            }
-        case INTEGER:
-            if (c == '.') {
-                state = INCOMPLETE_DECIMAL;
-            } else if (tolower(c) == 'e') {
-                state = EXPONENT_SIGN;
-            } else if (isdigit(c)) {
-                state = INTEGER;
-            } else if (is_whitespace(lexer)) {
-                state = ACCEPTED;
-            } else {
-                state = REJECTED;
-            }
-            break;
-        case IMPLICIT_INTEGER_PART:
-            if (isdigit(c)) {
-                state = DECIMAL;
-            } else {
-                return NULL;
-            }
-            break;
-        case INCOMPLETE_DECIMAL:
-            if (isdigit(c)) {
-                state = DECIMAL;
-            } else {
-                print(E, "bad number format %s at line %d\n", get_buffer(lexer), lexer->line);
-                exit(EXIT_FAILURE);
-            }
-            break;
-        case DECIMAL:
-            if (isdigit(c)) {
-                state = DECIMAL;
-            } else if (tolower(c) == 'e') {
-                state = EXPONENT_SIGN;
-            } else if (is_whitespace(lexer)) {
-                state = ACCEPTED;
-            } else {
-                state = REJECTED;
-            }
-            break;
-        case EXPONENT_SIGN:
-            if (c == '+' || c == '-') {
-                state = EXPONENT;
-            } else if (isdigit(c)) {
-                state = EXPONENT;
-            } else {
-                state = REJECTED;
-            }
-            break;
-        case EXPONENT:
-            if (isdigit(c)) {
-                state = EXPONENT;
-            } else if (is_whitespace(lexer)) {
-                state = ACCEPTED;
-            } else {
-                state = REJECTED;
-            }
-            break;
-        }
-    }
-
-    if (state == ACCEPTED) {
-        char *lexeme = get_buffer(lexer);
-        return mktokl(NUM, lexeme);
-    } else {
-        return NULL;
-    }
+int is_whitespace(char c) {
+    return c == ' ' || c == '\t' || c == '\n' || c == '\r';
 }
 
-static int is_whitespace(Lexer *lexer) {
-    return lexer->peek == ' '
-           || lexer->peek == '\t'
-           || lexer->peek == '\n'
-           || lexer->peek == '\r';
+static int is_new_line(char c) {
+    return c == '\n' || c == '\r';
 }
 
-static token *make_token(Lexer *lexer, int tag, char *lexeme, bool reset) {
+token *make_token(Lexer *lexer, int tag, char *lexeme, bool reset) {
     if (reset) {
-        lexer->peek = ' ';
+        lexer->peek = LEXER_RESET;
     }
 
     token *tok = malloc(sizeof(token));
@@ -366,4 +255,33 @@ static token *make_token(Lexer *lexer, int tag, char *lexeme, bool reset) {
     tok->tag = tag;
 
     return tok;
+}
+
+void lexer_err(Lexer *lexer, char *msg) {
+    unsigned int i;
+    unsigned int err_column = lexer->column;
+    if (err_column > 0) {
+        err_column--;
+    }
+
+    printf("[%s:%d] error: %s", lexer->meta->pathname, lexer->line, msg);
+    printf("\t");
+    fseek(lexer->fptr, lexer->line_start, SEEK_SET);
+
+    while (1) {
+        lexer->peek = (char) fgetc(lexer->fptr);
+        if (!is_new_line(lexer->peek) && lexer->peek != EOF) {
+            printf("%c", lexer->peek);
+        } else {
+            break;
+        }
+    }
+
+    printf("\n\t");
+    for (i = 0; i < err_column; i++) {
+        printf(" ");
+    }
+    printf("^\n");
+
+    exit(EXIT_FAILURE);
 }

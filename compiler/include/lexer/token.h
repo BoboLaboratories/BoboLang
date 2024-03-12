@@ -3,8 +3,8 @@
 
 typedef struct {
     int tag;
-    int line;
     char *lexeme;
+    unsigned int line;
 } token;
 
 #define TOK_PRINT(tok)  do {                                                        \
@@ -12,7 +12,7 @@ typedef struct {
                                 if (tok->tag == EOF) {                              \
                                     print(N, "<EOF>\n");                            \
                                 } else {                                            \
-                                    print(N, "<%d, %s>\n", tok->tag, tok->lexeme);  \
+                                    print(N, "<%d, %d, %s>\n", tok->line, tok->tag, tok->lexeme);  \
                                 }                                                   \
                             }                                                       \
                         } while(0)

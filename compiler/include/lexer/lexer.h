@@ -3,11 +3,12 @@
 
 #include <stdio.h>
 
+#include "meta.h"
 #include "token.h"
 
 typedef struct lexer Lexer;
 
-Lexer *init_lexer(FILE *fptr);
+Lexer *init_lexer(Meta *meta);
 token *scan(Lexer *lexer);
 void free_lexer(Lexer *lexer);
 
