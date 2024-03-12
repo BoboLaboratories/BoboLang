@@ -16,8 +16,17 @@ struct lexer {
     int line;
 };
 
-
-#define DFA_NUM_Q3 3
+typedef enum {
+    INTEGER_SIGN,
+    INTEGER,
+    IMPLICIT_INTEGER_PART,
+    INCOMPLETE_DECIMAL,
+    DECIMAL,
+    EXPONENT_SIGN,
+    EXPONENT,
+    ACCEPTED,
+    REJECTED
+} NumericLiteralState;
 
 
 /* reads the next char from file */
@@ -48,7 +57,7 @@ static void multi_line_comment(Lexer *lexer);
 
 static token *scan_id(Lexer *lexer);
 
-static token *scan_numeric_literal(Lexer *lexer, int state);
+static token *scan_numeric_literal(Lexer *lexer, NumericLiteralState state);
 
 static int is_whitespace(Lexer *lexer);
 
@@ -82,13 +91,13 @@ token *scan(Lexer *lexer) {
     case '}':
         return mktokr(TOK_RPG);
     case '.': {
-        token *numeric_literal = scan_numeric_literal(lexer, 3);
+        token *numeric_literal = scan_numeric_literal(lexer, IMPLICIT_INTEGER_PART);
         return numeric_literal != NULL ? numeric_literal : mktok(TOK_DOT);
     }
     case '*':
         return mktokr(TOK_MUL);
     case '+': {
-        token *numeric_literal = scan_numeric_literal(lexer, 1);
+        token *numeric_literal = scan_numeric_literal(lexer, INTEGER_SIGN);
         return numeric_literal != NULL ? numeric_literal : mktok(TOK_PLUS);
     }
     case '/':
@@ -112,8 +121,14 @@ token *scan(Lexer *lexer) {
         return (next() == '=') ? mktokr(TOK_NEQ) : mktok(TOK_NOT);
     case '=':
         return (next() == '=') ? mktokr(TOK_EQ) : mktok(TOK_ASSIGN);
-    case '-':
-        return (next() == '>') ? mktokr(TOK_ARROW) : mktok(TOK_MINUS);
+    case '-': {
+        token *numeric_literal = scan_numeric_literal(lexer, INTEGER_SIGN);
+        if (numeric_literal != NULL) {
+            return numeric_literal;
+        } else {
+            return (next() == '>') ? mktokr(TOK_ARROW) : mktok(TOK_MINUS);
+        }
+    }
     case '&':
         if (next() != '&') {
             print(E, "illegal symbol &%c at line %d\n", lexer->peek, lexer->line);
@@ -132,7 +147,7 @@ token *scan(Lexer *lexer) {
         if (isalpha(lexer->peek) || lexer->peek == '_') {
             return scan_id(lexer);
         } else if (isdigit(lexer->peek)) {
-            token *tok = scan_numeric_literal(lexer, 2);
+            token *tok = scan_numeric_literal(lexer, INTEGER);
             if (tok != NULL) {
                 return tok;
             }
@@ -251,111 +266,81 @@ static token *scan_id(Lexer *lexer) {
     }
 }
 
-static token *scan_numeric_literal(Lexer *lexer, int state) {
+static token *scan_numeric_literal(Lexer *lexer, NumericLiteralState state) {
     start_buffering(lexer);
 
-    bool stop = false;
-    while (!stop && state >= 0) {
+    while (state != ACCEPTED && state != REJECTED) {
         const char c = next();
-
         switch (state) {
-        case 1:
-            if (c == '.')
-                state = 3;
-            else if (isdigit(c))
-                state = 2;
-            else if (is_whitespace(lexer))
-                stop = true;
-            else
-                state = -1;
+        case INTEGER_SIGN:
+            if (c == '.') {
+                state = IMPLICIT_INTEGER_PART;
+            } else if (isdigit(c)) {
+                state = INTEGER;
+            } else {
+                return NULL;
+            }
+        case INTEGER:
+            if (c == '.') {
+                state = INCOMPLETE_DECIMAL;
+            } else if (tolower(c) == 'e') {
+                state = EXPONENT_SIGN;
+            } else if (isdigit(c)) {
+                state = INTEGER;
+            } else if (is_whitespace(lexer)) {
+                state = ACCEPTED;
+            } else {
+                state = REJECTED;
+            }
             break;
-        case 2:
-            if (c == 'e')
-                state = 5;
-            else if (c == '.')
-                state = 3;
-            else if (isdigit(c))
-                state = 2;
-            else if (is_whitespace(lexer))
-                stop = true;
-            else
-                state = -1;
+        case IMPLICIT_INTEGER_PART:
+            if (isdigit(c)) {
+                state = DECIMAL;
+            } else {
+                return NULL;
+            }
             break;
-        case 3:
-            if (isdigit(c))
-                state = 4;
-            else if (c == '.') {
-                state = 4;
-                stop = true;
-            } else if (is_whitespace(lexer))
-                stop = true;
-            else
-                state = -1;
+        case INCOMPLETE_DECIMAL:
+            if (isdigit(c)) {
+                state = DECIMAL;
+            } else {
+                print(E, "bad number format %s at line %d\n", get_buffer(lexer), lexer->line);
+                exit(EXIT_FAILURE);
+            }
             break;
-        case 4:
-            if (c == 'e')
-                state = 5;
-            else if (isdigit(c))
-                state = 4;
-            else if (is_whitespace(lexer))
-                stop = true;
-            else
-                state = -1;
+        case DECIMAL:
+            if (isdigit(c)) {
+                state = DECIMAL;
+            } else if (tolower(c) == 'e') {
+                state = EXPONENT_SIGN;
+            } else if (is_whitespace(lexer)) {
+                state = ACCEPTED;
+            } else {
+                state = REJECTED;
+            }
             break;
-        case 5:
-            if (c == '.')
-                state = 8;
-            if (c == '+' || c == '-')
-                state = 6;
-            else if (isdigit(c))
-                state = 7;
-            else if (is_whitespace(lexer))
-                stop = true;
-            else
-                state = -1;
+        case EXPONENT_SIGN:
+            if (c == '+' || c == '-') {
+                state = EXPONENT;
+            } else if (isdigit(c)) {
+                state = EXPONENT;
+            } else {
+                state = REJECTED;
+            }
             break;
-        case 6:
-            if (c == '.')
-                state = 8;
-            else if (isdigit(c))
-                state = 7;
-            else if (is_whitespace(lexer))
-                stop = true;
-            else
-                state = -1;
-            break;
-        case 7:
-            if (c == '.')
-                state = 8;
-            else if (isdigit(c))
-                state = 7;
-            else if (is_whitespace(lexer))
-                stop = true;
-            else
-                state = -1;
-            break;
-        case 8:
-            if (isdigit(c))
-                state = 9;
-            else if (is_whitespace(lexer))
-                stop = true;
-            else
-                state = -1;
-            break;
-        case 9:
-            if (isdigit(c))
-                state = 9;
-            else if (is_whitespace(lexer))
-                stop = true;
-            else
-                state = -1;
+        case EXPONENT:
+            if (isdigit(c)) {
+                state = EXPONENT;
+            } else if (is_whitespace(lexer)) {
+                state = ACCEPTED;
+            } else {
+                state = REJECTED;
+            }
             break;
         }
-
-        printf("(char: %d, state: %d)\n", (int) lexer->peek, state);
     }
 
-    if (state == 2 || state == 4 || state == 7 || state == 9) {
+    if (state == ACCEPTED) {
         char *lexeme = get_buffer(lexer);
         return mktokl(NUM, lexeme);
     } else {
