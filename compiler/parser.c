@@ -6,9 +6,10 @@
 #include "lexer/lexer.h"
 #include "parser/ast.h"
 #include "parser/parser.h"
+#include "lib/utils.h"
 #include "lib/console/console.h"
 #include "lib/string_utils/string_utils.h"
-#include "lib/data/list/list.h"
+#include "lib/data/list/arraylist.h"
 
 
 struct parser {
@@ -50,8 +51,8 @@ static void match(parser *p, int tag) {
 #define ERR_PROGRAM_TOO_BIG     "Program too big"
 #define ERR_TOO_MANY_ARGUMENTS  "Too many arguments"
 
-static void ast_add(List *list, void *node, char *errmsg) {
-    if (!list_add(list, node)) {
+static void ast_add(ArrayList *list, void *node, char *errmsg) {
+    if (!al_add(list, node)) {
         if (errno == ENOMEM) {
             print(E, "Insufficient memory in the system\n");
         } else {
@@ -140,11 +141,11 @@ static ast_expr *expr(parser *p) {
     }
 }
 
-static void invokearglistp(parser *p, List *args) {
+static void invokearglistp(parser *p, ArrayList *args) {
     switch (p->curr->tag) {
     case COMMA:
         match(p, COMMA);
-        list_add(args, expr(p));
+        al_add(args, expr(p));
         invokearglistp(p, args);
         break;
     case RPT:
@@ -155,13 +156,13 @@ static void invokearglistp(parser *p, List *args) {
     }
 }
 
-static List *invokearglist(parser *p) {
+static ArrayList *invokearglist(parser *p) {
     switch (p->curr->tag) {
     case NUM:
     case ID: {
-        List *args;
-        list_create(&args, sizeof(u_int8_t));
-        list_add(args, expr(p));
+        ArrayList *args;
+        al_create(&args, MAX_OF(u_int8_t));
+        al_add(args, expr(p));
         invokearglistp(p, args);
         return args;
     }
@@ -173,11 +174,11 @@ static List *invokearglist(parser *p) {
     }
 }
 
-static List *invokeargs(parser *p) {
+static ArrayList *invokeargs(parser *p) {
     switch (p->curr->tag) {
     case LPT:
         match(p, LPT);
-        List *args = invokearglist(p);
+        ArrayList *args = invokearglist(p);
         match(p, RPT);
         return args;
     default:
@@ -366,7 +367,7 @@ static void fundefarglistp(parser *p, ast_fundef *fun) {
         match(p, COMMA);
         ast_funarg *node = funarg(p);
         node->expr = assign(p);
-        list_add(fun->args, node);
+        al_add(fun->args, node);
         fundefarglistp(p, fun);
         break;
     case RPT:
@@ -379,7 +380,7 @@ static void fundefarglistp(parser *p, ast_fundef *fun) {
 
 static void funarglistp(parser *p, ast_fundef *fun, ast_funarg *arg) {
     /* arg needs to be added regardless if its follows */
-    list_add(fun->args, arg);
+    al_add(fun->args, arg);
 
     switch (p->curr->tag) {
     case COMMA:
@@ -425,7 +426,7 @@ static ast_fundef *funsig(parser *p) {
         node->name = strdup(p->prev->lexeme);
         node->is_private = false;
         node->is_native = false;
-        list_create(&node->args, sizeof(u_int8_t));
+        al_create(&node->args, MAX_OF(u_int8_t));
 
         match(p, LPT);
         funarglist(p, node);
@@ -576,9 +577,8 @@ parser *init_parser(Lexer *lexer) {
     p->curr = malloc(sizeof(token));
 
     p->program = malloc(sizeof(ast_program));
-    list_create(&p->program->imports, sizeof(u_int32_t));
-    print(D, "%p\n", p->program->imports);
-    list_create(&p->program->stats, sizeof(u_int32_t));
+    al_create(&p->program->imports, MAX_OF(u_int32_t));
+    al_create(&p->program->stats, MAX_OF(u_int32_t));
 
     return p;
 }

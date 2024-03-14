@@ -5,16 +5,11 @@ override CC = gcc
 # $^ prerequisites
 # $< first prerequisite
 
-SHARED = shared/*.h
-
 MAIN = boboc bobo
 LIBS = console string_utils list
 
 MAIN_BINARIES = $(addprefix bin/,$(MAIN))
 LIBS_BINARIES = $(addprefix bin/lib/,$(LIBS))
-
-bin/%: %/*.c %/*.h $(SHARED) | makedir
-	$(CC) $(CFLAGS) $(filter %.c,$^) -o $@
 
 # Directive for building the compiler
 COMPILER_SHARED_LIBS = console string_utils data/list

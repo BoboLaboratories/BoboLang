@@ -2,7 +2,7 @@
 #include <malloc.h>
 
 #include "meta.h"
-#include "lib/data/list/list.h"
+#include "lib/data/list/arraylist.h"
 #include "lib/console/console.h"
 #include "parser/parser.h"
 
@@ -18,8 +18,8 @@ static void print_expr(char *prefix, ast_expr *node) {
             ast_expr_invoke *invoke = node->value;
             printf("%s%s(", prefix, invoke->qid);
             if (invoke->args != NULL) {
-                for (i = 0; i < list_size(invoke->args); i++) {
-                    print_expr(i == 0 ? "" : ", ", list_get(invoke->args, i));
+                for (i = 0; i < al_size(invoke->args); i++) {
+                    print_expr(i == 0 ? "" : ", ", al_get(invoke->args, i));
                 }
             }
             printf(")");
@@ -52,25 +52,25 @@ static void compile(char *pathname) {
     printf("\n");
 
     int i, j;
-    for (i = 0; i < list_size(prog->imports); i++) {
-        printf("import %s\n", (char *) list_get(prog->imports, i));
+    for (i = 0; i < al_size(prog->imports); i++) {
+        printf("import %s\n", (char *) al_get(prog->imports, i));
     }
     printf("\n");
 
-    for (i = 0; i < list_size(prog->stats); i++) {
-        ast_program_stat *ps = list_get(prog->stats, i);
+    for (i = 0; i < al_size(prog->stats); i++) {
+        ast_program_stat *ps = al_get(prog->stats, i);
         switch (ps->type) {
         case PROGRAM_FUNDEF: {
             ast_fundef *f = ps->value;
             if (f->is_private) printf("private ");
             if (f->is_native) printf("native ");
             printf("fun %s(", f->name);
-            for (j = 0; j < list_size(f->args); j++) {
-                ast_funarg *a = list_get(f->args, j);
+            for (j = 0; j < al_size(f->args); j++) {
+                ast_funarg *a = al_get(f->args, j);
                 if (a->is_const) printf("const ");
                 printf("%s", a->name);
                 print_expr(" = ", a->expr);
-                if (j < list_size(f->args) - 1) {
+                if (j < al_size(f->args) - 1) {
                     printf(", ");
                 }
             }

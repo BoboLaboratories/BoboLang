@@ -4,11 +4,11 @@
 #include <stdbool.h>
 #include <sys/types.h>
 
-#include "lib/data/list/list.h"
+#include "lib/data/list/arraylist.h"
 
 typedef struct {
     char *qid;
-    List *args;
+    ArrayList *args;
 } ast_expr_invoke;
 
 typedef struct {
@@ -22,7 +22,7 @@ typedef struct {
 
 typedef struct {
     char *qid;
-    List *args;
+    ArrayList *args;
 } ast_stat_invoke;
 
 typedef struct {
@@ -56,7 +56,7 @@ typedef struct {
     bool is_private;
     bool is_native;
     char *name;
-    List *args;
+    ArrayList *args;
 } ast_fundef;
 
 typedef struct {
@@ -68,8 +68,8 @@ typedef struct {
 } ast_program_stat;
 
 typedef struct {
-    List *imports;
-    List *stats;
+    ArrayList *imports;
+    ArrayList *stats;
 } ast_program;
 
 #endif
