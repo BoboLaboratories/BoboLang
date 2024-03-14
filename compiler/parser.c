@@ -1,9 +1,7 @@
-#include <math.h>
 #include <errno.h>
 #include <stdlib.h>
 #include <string.h>
 #include <malloc.h>
-#include <sys/types.h>
 
 #include "lexer/lexer.h"
 #include "parser/ast.h"
@@ -112,18 +110,18 @@ static char *qid(parser *p) {
 }
 
 static ast_expr *literal(parser *p) {
-
     switch (p->curr->tag) {
     case NUM:
         match(p, NUM);
-        double dvalue = strtod(p->prev->lexeme, NULL); /* TODO strtod error checking */
-        long lvalue = (long) dvalue;
+        double dbl = strtod(p->prev->lexeme, NULL);
+        /* TODO strtod error checking */
         ast_expr *node = malloc(sizeof(ast_expr));
         node->type = EXPR_NUMERIC_LITERAL;
-        node->value = malloc(sizeof(ast_expr_numeric_literal));
-        ((ast_expr_numeric_literal *) node->value)->type = /* TODO */
+        node->value = malloc(sizeof(double));
+        *((double *) node->value) = dbl;
+        return node;
     default:
-        print(E, "literal");
+        print(E, "literal\n");
         exit(EXIT_FAILURE);
     }
 }
@@ -159,6 +157,7 @@ static void invokearglistp(parser *p, List *args) {
 
 static List *invokearglist(parser *p) {
     switch (p->curr->tag) {
+    case NUM:
     case ID: {
         List *args;
         list_create(&args, sizeof(u_int8_t));
@@ -208,8 +207,7 @@ static ast_expr *qidexprp(parser *p, char *qid) {
     case VAR:
     case ID:
         node->type = EXPR_QID;
-        node->value = malloc(sizeof(ast_expr_qid));
-        ((ast_expr_qid *) node->value)->qid = qid;
+        node->value = qid;
         return node;
     default:
         print(E, "qidexprp");

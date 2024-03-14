@@ -9,11 +9,9 @@ static void print_expr(char *prefix, ast_expr *node) {
     if (node != NULL) {
         switch (node->type) {
         case EXPR_QID: {
-            ast_expr_qid *qid = node->value;
-            printf("%s%s", prefix, qid->qid);
+            printf("%s%s", prefix, (char *) node->value);
             break;
         }
-
         case EXPR_INVOKE: {
             int i;
             ast_expr_invoke *invoke = node->value;
@@ -26,6 +24,9 @@ static void print_expr(char *prefix, ast_expr *node) {
             printf(")");
             break;
         }
+        case EXPR_NUMERIC_LITERAL: {
+            printf("%s%g", prefix, *((double *) node->value));
+        }
         default:
             break;
         }
@@ -36,16 +37,15 @@ static void compile(char *pathname) {
     Meta *meta = malloc(sizeof(Meta));
     meta->pathname = pathname;
 
-
     Lexer *lex = init_lexer(meta);
 
-    token *tok;
+    /*token *tok;
     do {
         tok = scan(lex);
         TOK_PRINT(tok);
     } while (tok->tag != EOF);
+    return;*/
 
-    return;
     parser *par = init_parser(lex);
     ast_program *prog = parse(par);
     printf("\n");
@@ -69,23 +69,6 @@ static void compile(char *pathname) {
                 if (a->is_const) printf("const ");
                 printf("%s", a->name);
                 print_expr(" = ", a->expr);
-                /* if (e != NULL) {
-                    printf(" = %s", ((ast_expr_qid *) e->value)->qid);
-                    if (e->type == EXPR_INVOKE) {
-                        int k;
-                        ast_expr_invoke *in = e->value;
-                        printf("(");
-                        if (in->args != NULL) {
-                            for (k = 0; k <= list_size(in->args); k++) {
-                                ast_expr *ex = list_get(in->args, k);
-                                switch (ex->type) {
-
-                                }
-                            }
-                        }
-                        printf(")");
-                    }
-                }*/
                 if (j < list_size(f->args) - 1) {
                     printf(", ");
                 }
@@ -103,15 +86,6 @@ static void compile(char *pathname) {
                 if (v->is_private) printf("private ");
                 printf(v->is_const ? "const " : "var ");
                 printf("%s", v->name);
-                /*if (v->init != NULL) {
-                    ast_expr *e = v->init;
-                    if (e != NULL) {
-                        printf(" = %s", ((ast_expr_qid *) e->value)->qid);
-                        if (e->type == EXPR_INVOKE) {
-                            printf("(...)");
-                        }
-                    }
-                }*/
                 print_expr(" = ", v->init);
                 break;
             }

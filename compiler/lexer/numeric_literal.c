@@ -13,6 +13,14 @@ static void reject(Lexer *lexer) {
     lexer_err(lexer, "bad number format\n");
 }
 
+static bool can_terminate(char c) {
+    return is_whitespace(c)
+           || c == EOF
+           || c == COMMA
+           || c == RPT
+           || c == RPG;
+}
+
 token *scan_numeric_literal(Lexer *lexer, NumericLiteralState state) {
     start_buffering(lexer);
 
@@ -66,7 +74,7 @@ token *scan_numeric_literal(Lexer *lexer, NumericLiteralState state) {
                  * we continue lexing the integer part
                  */
                 state = INTEGER_PART;
-            } else if (is_whitespace(c)) {
+            } else if (can_terminate(c)) {
                 return accept(lexer);
             } else {
                 lexer->column++;
@@ -122,7 +130,7 @@ token *scan_numeric_literal(Lexer *lexer, NumericLiteralState state) {
                  * we read 'e' or 'E' so we need to read the exponent
                  */
                 state = EXPONENT_SIGN;
-            } else if (is_whitespace(c)) {
+            } else if (can_terminate(c)) {
                 return accept(lexer);
             } else {
                 lexer->column++;
@@ -154,7 +162,7 @@ token *scan_numeric_literal(Lexer *lexer, NumericLiteralState state) {
                  * we continue lexing the exponent
                  */
                 state = EXPONENT_PART;
-            } else if (is_whitespace(c)) {
+            } else if (can_terminate(c)) {
                 return accept(lexer);
             } else {
                 lexer->column++;

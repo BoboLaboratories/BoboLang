@@ -1,10 +1,25 @@
+const a = 1
+var b = a
+
+fun main() {
+    b = 5
+    var c = 2
+}
+
+main(1)
+
+/*
+
 import a.b.c.d
 import io.net
 import math.pow
 
--56.89e78
+var x = -56.89e78
 
-/*
+
+move(x, 123)
+
+
 private const g0 = __get_so_pipe()
 
 private const g1 = g0

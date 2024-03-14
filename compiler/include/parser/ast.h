@@ -8,20 +8,8 @@
 
 typedef struct {
     char *qid;
-} ast_expr_qid;
-
-typedef struct {
-    char *qid;
     List *args;
 } ast_expr_invoke;
-
-typedef struct {
-    enum {
-        EXPR_NUMERIC_LITERAL_DOUBLE,
-        EXPR_NUMERIC_LITERAL_INTEGER
-    } type;
-    u_int64_t value;
-} ast_expr_numeric_literal;
 
 typedef struct {
     enum {

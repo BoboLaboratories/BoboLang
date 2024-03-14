@@ -29,6 +29,8 @@ struct lexer {
 /* make token with the given tag and lexeme and reset peek */
 #define mktoklr(tag, lexeme)    make_token(lexer, tag, lexeme, true)
 
+void reset(Lexer *lexer);
+
 char next(Lexer * lexer);
 
 token *make_token(Lexer *lexer, int tag, char *lexeme, bool reset);

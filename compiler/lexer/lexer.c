@@ -23,12 +23,16 @@ Lexer *init_lexer(Meta *meta) {
 
     lexer->fptr = fopen(meta->pathname, "r");
     lexer->meta = meta;
-    lexer->peek = LEXER_RESET;
     lexer->buf_start = -1;
     lexer->line = 1;
     lexer->column = 1;
+    reset(lexer);
 
     return lexer;
+}
+
+void reset(Lexer *lexer) {
+    lexer->peek = LEXER_RESET;
 }
 
 char next(Lexer *lexer) {
@@ -51,6 +55,7 @@ token *scan(Lexer *lexer) {
     if (lexer->peek == LEXER_RESET) {
         next(lexer);
     }
+
     while (is_whitespace(lexer->peek)) {
         next(lexer);
     }
@@ -72,7 +77,7 @@ token *scan(Lexer *lexer) {
         return mktokr(TOK_MUL);
     case '+': {
         token *numeric_literal = scan_numeric_literal(lexer, INTEGER_SIGN);
-        return numeric_literal != NULL ? numeric_literal : mktokr(TOK_PLUS);
+        return numeric_literal != NULL ? numeric_literal : mktok(TOK_PLUS);
     }
     case '/':
         switch (next(lexer)) {
@@ -121,8 +126,9 @@ token *scan(Lexer *lexer) {
         if (isalpha(lexer->peek) || lexer->peek == '_') {
             return scan_id(lexer);
         } else if (isdigit(lexer->peek)) {
-            token *tok = scan_numeric_literal(lexer, INTEGER);
+            token *tok = scan_numeric_literal(lexer, INTEGER_PART);
             if (tok != NULL) {
+                reset(lexer);
                 return tok;
             }
         }
@@ -238,7 +244,6 @@ static token *scan_id(Lexer *lexer) {
     }
 }
 
-
 int is_whitespace(char c) {
     return c == ' ' || c == '\t' || c == '\n' || c == '\r';
 }
@@ -247,9 +252,9 @@ static int is_new_line(char c) {
     return c == '\n' || c == '\r';
 }
 
-token *make_token(Lexer *lexer, int tag, char *lexeme, bool reset) {
-    if (reset) {
-        lexer->peek = LEXER_RESET;
+token *make_token(Lexer *lexer, int tag, char *lexeme, bool is_reset) {
+    if (is_reset) {
+        reset(lexer);
     }
 
     token *tok = malloc(sizeof(token));
