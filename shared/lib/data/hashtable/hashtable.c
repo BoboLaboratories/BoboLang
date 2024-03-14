@@ -1,11 +1,37 @@
-/* Modified sources from https://github.com/benhoyt/ht */
+/*
+ * MIT License
+ *
+ * Copyright (c) 2021 Ben Hoyt
+ *
+ * Permission is hereby granted, free of charge, to any person obtaining a copy
+ * of this software and associated documentation files (the "Software"), to deal
+ * in the Software without restriction, including without limitation the rights
+ * to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+ * copies of the Software, and to permit persons to whom the Software is
+ * furnished to do so, subject to the following conditions:
+ *
+ * The above copyright notice and this permission notice shall be included in all
+ * copies or substantial portions of the Software.
+ *
+ * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+ * IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+ * FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+ * AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+ * LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+ * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+ * SOFTWARE.
+ */
+
+/*
+ * Modified sources from https://github.com/benhoyt/ht
+ */
 
 #include <stdint.h>
 #include <stdlib.h>
 #include <string.h>
 
-#include "symbol_table.h"
-#include "lib/string_utils.h"
+#include "hashtable.h"
+#include "lib/string_utils/string_utils.h"
 
 #define INITIAL_CAPACITY 16  /* must not be zero */
 
@@ -13,28 +39,26 @@
 typedef struct {
     const char *key;  /* key is NULL if this slot is empty */
     void *value;
-} st_entry;
+} ht_entry;
 
 /* Hash table structure: create with ht_create, free with ht_destroy. */
-struct st {
-    st_entry *entries;  /* hash slots */
+struct ht {
+    ht_entry *entries;  /* hash slots */
     size_t capacity;    /* size of _entries array */
     size_t length;      /* number of items in hash table */
-    st *prev;
 };
 
-st *st_create(st *prev) {
+ht *st_create(void) {
     /* Allocate space for hash table struct. */
-    st *table = malloc(sizeof(struct st));
+    ht *table = malloc(sizeof(struct ht));
     if (table == NULL) {
         return NULL;
     }
     table->length = 0;
     table->capacity = INITIAL_CAPACITY;
-    table->prev = prev;
 
     /* Allocate (zero'd) space for entry buckets. */
-    table->entries = calloc(table->capacity, sizeof(st_entry));
+    table->entries = calloc(table->capacity, sizeof(ht_entry));
     if (table->entries == NULL) {
         free(table); /* error, free table before we return! */
         return NULL;
@@ -42,7 +66,7 @@ st *st_create(st *prev) {
     return table;
 }
 
-void st_destroy(st *table) {
+void st_destroy(ht *table) {
     /* First free allocated keys. */
     size_t i;
     for (i = 0; i < table->capacity; i++) {
@@ -69,7 +93,7 @@ static uint64_t hash_key(const char *key) {
     return hash;
 }
 
-void *st_get(st *table, const char *key) {
+void *st_get(ht *table, const char *key) {
     /* AND hash with capacity-1 to ensure it's within entries array. */
     uint64_t hash = hash_key(key);
     size_t index = (size_t) (hash & (uint64_t) (table->capacity - 1));
@@ -88,15 +112,11 @@ void *st_get(st *table, const char *key) {
         }
     }
 
-    if (table->prev != NULL) {
-        return st_get(table->prev, key);
-    }
-
     return NULL;
 }
 
 /* Internal function to set an entry (without expanding table). */
-static const char *st_set_entry(st_entry *entries, size_t capacity, const char *key, void *value, size_t *plength) {
+static const char *st_set_entry(ht_entry *entries, size_t capacity, const char *key, void *value, size_t *plength) {
     /* AND hash with capacity-1 to ensure it's within entries array. */
     uint64_t hash = hash_key(key);
     size_t index = (size_t) (hash & (uint64_t) (capacity - 1));
@@ -131,20 +151,20 @@ static const char *st_set_entry(st_entry *entries, size_t capacity, const char *
 
 /* Expand hash table to twice its current size. Return true on success, */
 /* false if out of memory. */
-static bool st_expand(st *table) {
+static bool st_expand(ht *table) {
     /* Allocate new entries array. */
     size_t new_capacity = table->capacity * 2;
     if (new_capacity < table->capacity) {
         return false;  /* overflow (capacity would be too big) */
     }
-    st_entry *new_entries = calloc(new_capacity, sizeof(st_entry));
+    ht_entry *new_entries = calloc(new_capacity, sizeof(ht_entry));
     if (new_entries == NULL) {
         return false;
     }
     /* Iterate entries, move all non-empty ones to new table's entries. */
     size_t i;
     for (i = 0; i < table->capacity; i++) {
-        st_entry entry = table->entries[i];
+        ht_entry entry = table->entries[i];
         if (entry.key != NULL) {
             st_set_entry(new_entries, new_capacity, entry.key, entry.value, NULL);
         }
@@ -157,7 +177,7 @@ static bool st_expand(st *table) {
     return true;
 }
 
-const char *st_set(st *table, const char *key, void *value) {
+const char *st_set(ht *table, const char *key, void *value) {
     if (value == NULL) {
         return NULL;
     }
@@ -173,26 +193,26 @@ const char *st_set(st *table, const char *key, void *value) {
     return st_set_entry(table->entries, table->capacity, key, value, &table->length);
 }
 
-size_t st_length(st *table) {
+size_t st_length(ht *table) {
     return table->length;
 }
 
-sti st_iterator(st *table) {
-    sti it;
+hti st_iterator(ht *table) {
+    hti it;
     it._table = table;
     it._index = 0;
     return it;
 }
 
-bool st_next(sti *it) {
+bool st_next(hti *it) {
     /* Loop till we've hit end of entries array. */
-    st *table = it->_table;
+    ht *table = it->_table;
     while (it->_index < table->capacity) {
         size_t i = it->_index;
         it->_index++;
         if (table->entries[i].key != NULL) {
             /* Found next non-empty item, update iterator key and value. */
-            st_entry entry = table->entries[i];
+            ht_entry entry = table->entries[i];
             it->key = entry.key;
             it->value = entry.value;
             return true;

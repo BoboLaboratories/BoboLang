@@ -4,7 +4,7 @@
 #include <stdbool.h>
 #include <sys/types.h>
 
-#include "lib/structures/list.h"
+#include "lib/data/list/list.h"
 
 typedef struct {
     char *qid;

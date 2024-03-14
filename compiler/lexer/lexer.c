@@ -5,7 +5,7 @@
 #include <malloc.h>
 
 #include "common.h"
-#include "lib/console.h"
+#include "lib/console/console.h"
 #include "numeric_literal.h"
 
 #define LEXER_RESET '\0'

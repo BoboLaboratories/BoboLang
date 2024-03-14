@@ -1,6 +1,8 @@
 #ifndef BOBO_LANG_STRUCTURES_LIST_H
 #define BOBO_LANG_STRUCTURES_LIST_H
 
+#include <stdbool.h>
+
 typedef struct list List;
 
 void list_create(List **list, size_t max);

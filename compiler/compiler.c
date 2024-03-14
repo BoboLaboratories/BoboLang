@@ -2,7 +2,8 @@
 #include <malloc.h>
 
 #include "meta.h"
-#include "lib/console.h"
+#include "lib/data/list/list.h"
+#include "lib/console/console.h"
 #include "parser/parser.h"
 
 static void print_expr(char *prefix, ast_expr *node) {

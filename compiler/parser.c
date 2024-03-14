@@ -6,9 +6,9 @@
 #include "lexer/lexer.h"
 #include "parser/ast.h"
 #include "parser/parser.h"
-#include "lib/console.h"
-#include "lib/string_utils.h"
-#include "lib/structures/list.h"
+#include "lib/console/console.h"
+#include "lib/string_utils/string_utils.h"
+#include "lib/data/list/list.h"
 
 
 struct parser {

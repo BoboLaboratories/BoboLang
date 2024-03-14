@@ -4,7 +4,7 @@
 #include <errno.h>
 #include <math.h>
 
-#include "lib/structures/list.h"
+#include "list.h"
 
 struct list {
     unsigned long max_size;

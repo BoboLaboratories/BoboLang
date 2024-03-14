@@ -3,7 +3,7 @@
 #include <stdarg.h>
 #include <string.h>
 
-#include "lib/console.h"
+#include "console.h"
 
 static const char *prefixes[] = {
         RESET       " INFO " RESET,

@@ -1,7 +1,8 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <sys/types.h>
-#include "bobo_types.h"
+
+#include "lang/types.h"
 
 #if defined(__GNUC__)
 #define USE_LABELS
