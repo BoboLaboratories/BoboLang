@@ -6,13 +6,13 @@ override CC = gcc
 # $< first prerequisite
 
 MAIN = boboc bobo
-LIBS = console string_utils list
+LIBS = console string_utils arraylist
 
 MAIN_BINARIES = $(addprefix bin/,$(MAIN))
 LIBS_BINARIES = $(addprefix bin/lib/,$(LIBS))
 
 # Directive for building the compiler
-COMPILER_SHARED_LIBS = console string_utils data/list
+COMPILER_SHARED_LIBS = console string_utils data/arraylist
 COMPILER_SHARED_LIBS_PATHS = $(addprefix bin/lib/,$(COMPILER_SHARED_LIBS))
 # COMPILER_LIBS = compiler/lib/*/*.c compiler/lib/*/*.h
 boboc: compiler/* compiler/*/* compiler/*/*/* $(COMPILER_SHARED_LIBS_PATHS)

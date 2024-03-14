@@ -2,7 +2,7 @@
 #include <malloc.h>
 
 #include "meta.h"
-#include "lib/data/list/arraylist.h"
+#include "lib/data/arraylist/arraylist.h"
 #include "lib/console/console.h"
 #include "parser/parser.h"
 

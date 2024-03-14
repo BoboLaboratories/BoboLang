@@ -9,7 +9,7 @@
 #include "lib/utils.h"
 #include "lib/console/console.h"
 #include "lib/string_utils/string_utils.h"
-#include "lib/data/list/arraylist.h"
+#include "lib/data/arraylist/arraylist.h"
 
 
 struct parser {
