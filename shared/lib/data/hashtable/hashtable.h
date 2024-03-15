@@ -33,23 +33,23 @@
 #include <sys/types.h>
 
 /* Hash table structure: create with ht_create, free with ht_destroy. */
-typedef struct ht ht;
+typedef struct hash_table HashTable;
 
 /*
  * Create hash table and return pointer to it, or NULL if out of memory.
  */
-ht *st_create(void);
+HashTable *ht_create(void);
 
 /*
  * Free memory allocated for hash table, including allocated keys.
  */
-void st_destroy(ht *table);
+void ht_destroy(HashTable *table);
 
 /*
  * Get item with given key (NUL-terminated) from hash table.
  * Return value (which was set with ht_set), or NULL if key not found.
  */
-void *st_get(ht *table, const char *key);
+void *ht_get(HashTable *table, const char *key);
 
 /*
  * Set item with given key (NUL-terminated) to value (which must not be NULL).
@@ -57,12 +57,12 @@ void *st_get(ht *table, const char *key);
  * (keys are freed automatically when ht_destroy is called).
  * Return address of copied key, or NULL if out of memory.
  */
-const char *st_set(ht *table, const char *key, void *value);
+const char *ht_set(HashTable *table, const char *key, void *value);
 
 /*
  * Return number of items in hash table.
  */
-size_t st_length(ht *table);
+size_t ht_length(HashTable *table);
 
 /*
  * Hash table iterator: create with ht_iterator, iterate with ht_next.
@@ -72,20 +72,20 @@ typedef struct {
     void *value;      /* current value */
 
     /* Don't use these fields directly. */
-    ht *_table;       /* reference to hash table being iterated */
+    HashTable *_table;       /* reference to hash table being iterated */
     size_t _index;    /* current index into ht._entries */
-} hti;
+} HashTableIterator;
 
 /*
  * Return new hash table iterator (for use with ht_next).
  */
-hti st_iterator(ht *table);
+HashTableIterator ht_iterator(HashTable *table);
 
 /*
  * Move iterator to next item in hash table, update iterator's key
  * and value to current item, and return true. If there are no more
  * items, return false. Don't call ht_set during iteration.
  */
-bool st_next(hti *it);
+bool ht_next(HashTableIterator *it);
 
 #endif

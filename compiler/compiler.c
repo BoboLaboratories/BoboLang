@@ -1,106 +1,17 @@
 #include <stdio.h>
-#include <malloc.h>
 
 #include "meta.h"
-#include "lib/data/arraylist/arraylist.h"
-#include "lib/console/console.h"
-#include "parser/parser.h"
+#include "lang/binary/module.h"
+#include "translator/translator.h"
 
-static void print_expr(char *prefix, ast_expr *node) {
-    if (node != NULL) {
-        switch (node->type) {
-        case EXPR_QID: {
-            printf("%s%s", prefix, (char *) node->value);
-            break;
-        }
-        case EXPR_INVOKE: {
-            int i;
-            ast_expr_invoke *invoke = node->value;
-            printf("%s%s(", prefix, invoke->qid);
-            if (invoke->args != NULL) {
-                for (i = 0; i < al_size(invoke->args); i++) {
-                    print_expr(i == 0 ? "" : ", ", al_get(invoke->args, i));
-                }
-            }
-            printf(")");
-            break;
-        }
-        case EXPR_NUMERIC_LITERAL: {
-            printf("%s%g", prefix, *((double *) node->value));
-        }
-        default:
-            break;
-        }
-    }
-}
 
 static void compile(char *pathname) {
-    Meta *meta = malloc(sizeof(Meta));
-    meta->pathname = pathname;
+    Meta meta = {
+            .pathname = pathname
+    };
 
-    Lexer *lex = init_lexer(meta);
-
-    /*token *tok;
-    do {
-        tok = scan(lex);
-        TOK_PRINT(tok);
-    } while (tok->tag != EOF);
-    return;*/
-
-    parser *par = init_parser(lex);
-    ast_program *prog = parse(par);
-    printf("\n");
-
-    int i, j;
-    for (i = 0; i < al_size(prog->imports); i++) {
-        printf("import %s\n", (char *) al_get(prog->imports, i));
-    }
-    printf("\n");
-
-    for (i = 0; i < al_size(prog->stats); i++) {
-        ast_program_stat *ps = al_get(prog->stats, i);
-        switch (ps->type) {
-        case PROGRAM_FUNDEF: {
-            ast_fundef *f = ps->value;
-            if (f->is_private) printf("private ");
-            if (f->is_native) printf("native ");
-            printf("fun %s(", f->name);
-            for (j = 0; j < al_size(f->args); j++) {
-                ast_funarg *a = al_get(f->args, j);
-                if (a->is_const) printf("const ");
-                printf("%s", a->name);
-                print_expr(" = ", a->expr);
-                if (j < al_size(f->args) - 1) {
-                    printf(", ");
-                }
-            }
-            printf(")");
-            break;
-        }
-        case PROGRAM_STAT: {
-            ast_stat *s = ps->value;
-            switch (s->type) {
-            case STAT_INVOKE:
-                break;
-            case STAT_VAR_DECL: {
-                ast_stat_var_decl *v = s->value;
-                if (v->is_private) printf("private ");
-                printf(v->is_const ? "const " : "var ");
-                printf("%s", v->name);
-                print_expr(" = ", v->init);
-                break;
-            }
-            case STAT_VAR_ASSIGN:
-
-                break;
-            }
-            break;
-        }
-        default:
-            print(E, "FUCK U\n");
-        }
-        printf("\n\n");
-    }
+    Translator *translator = init_translator(&meta);
+    BinaryModule *module = translate(translator);
 }
 
 int main(int argc, char *argv[]) {

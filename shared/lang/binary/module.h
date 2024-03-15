@@ -1,8 +1,8 @@
 #ifndef BOBO_LANG_BIN_H
 #define BOBO_LANG_BIN_H
 
-#include <sys/types.h>
-
+#include "base.h"
+#include "variable.h"
 #include "function.h"
 
 #define FUN_MOD_BASE    0
@@ -41,19 +41,23 @@ typedef struct {
 
 typedef struct {
     /* Unix file info */
-    u_int32_t magic;
+    u4 magic;
 
     /* Compilation data */
-    u_int16_t major_version;
-    u_int16_t minor_version;
+    u2 major_version;
+    u2 minor_version;
 
     /* Constants */
-    u_int16_t constant_count;
+    u2 constant_count;
     constant *constants;
 
+    /* Variable */
+    u2 variable_count;
+    Variable variables;
+
     /* Functions */
-    u_int16_t function_count;
-    function **functions;
-} bobo_bin;
+    u2 function_count;
+    Function **functions;
+} BinaryModule;
 
 #endif

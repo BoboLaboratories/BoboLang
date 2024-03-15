@@ -6,37 +6,53 @@ override CC = gcc
 # $< first prerequisite
 
 MAIN = boboc bobo
-LIBS = console string_utils arraylist
 
-MAIN_BINARIES = $(addprefix bin/,$(MAIN))
-LIBS_BINARIES = $(addprefix bin/lib/,$(LIBS))
+all: $(MAIN)
 
 # Directive for building the compiler
-COMPILER_SHARED_LIBS = console string_utils data/arraylist
+COMPILER_SHARED_LIBS = console string_utils data/arraylist data/hashtable
 COMPILER_SHARED_LIBS_PATHS = $(addprefix bin/lib/,$(COMPILER_SHARED_LIBS))
-# COMPILER_LIBS = compiler/lib/*/*.c compiler/lib/*/*.h
-boboc: compiler/* compiler/*/* compiler/*/*/* $(COMPILER_SHARED_LIBS_PATHS)
+COMPILER_SOURCES := $(shell find compiler -type f \( -iname \*.c -o -iname \*.h \))
+boboc: $(COMPILER_SOURCES) $(COMPILER_SHARED_LIBS_PATHS)
 	$(CC) $(CFLAGS) -Icompiler/include $(filter %.c,$^) $(addprefix -l:,$(COMPILER_SHARED_LIBS)) -o bin/$@ -lm
+.SILENT: boboc
 
 bobo: vm/*
 	$(CC) $(CFLAGS) $(filter %.c,$^) -o bin/$@
+.SILENT: bobo
 
 # Data structure libraries
 bin/lib/data/%: shared/data/%/* | makedir
 	$(CC) $(CFLAGS) -c $(filter %.c,$^) -o $@
 
-# Misc libraries
-bin/lib/%: shared/lib/%/* | makedir
+# Data structure libraries
+bin/lib/data/arraylist: shared/lib/data/arraylist/* | makedir
 	$(CC) $(CFLAGS) -c $(filter %.c,$^) -o $@
+.SILENT: bin/lib/data/arraylist
+
+# Data structure libraries
+bin/lib/data/hashtable: shared/lib/data/hashtable/* | makedir
+	$(CC) $(CFLAGS) -c $(filter %.c,$^) -o $@
+.SILENT: bin/lib/data/hashtable
+
+# Misc libraries
+bin/lib/console: shared/lib/console/* | makedir
+	$(CC) $(CFLAGS) -c $(filter %.c,$^) -o $@
+.SILENT: bin/lib/console
+
+# Misc libraries
+bin/lib/string_utils: shared/lib/string_utils/* | makedir
+	$(CC) $(CFLAGS) -c $(filter %.c,$^) -o $@
+.SILENT: bin/lib/string_utils
 
 # Simple clean directive
 clean:
-	echo -n "Cleaning up.."
+	#echo -n "Cleaning up.."
 	rm -rf bin
-	echo " done."
+	#echo " done."
+.SILENT: clean
 
 # Creates the output directory
 makedir:
 	mkdir -p bin/lib/data
-
-.SILENT: clean makedir
+.SILENT: makedir

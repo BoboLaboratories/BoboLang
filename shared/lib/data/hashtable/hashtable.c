@@ -42,15 +42,15 @@ typedef struct {
 } ht_entry;
 
 /* Hash table structure: create with ht_create, free with ht_destroy. */
-struct ht {
+struct hash_table {
     ht_entry *entries;  /* hash slots */
     size_t capacity;    /* size of _entries array */
     size_t length;      /* number of items in hash table */
 };
 
-ht *st_create(void) {
+HashTable *ht_create(void) {
     /* Allocate space for hash table struct. */
-    ht *table = malloc(sizeof(struct ht));
+    HashTable *table = malloc(sizeof(struct hash_table));
     if (table == NULL) {
         return NULL;
     }
@@ -66,7 +66,7 @@ ht *st_create(void) {
     return table;
 }
 
-void st_destroy(ht *table) {
+void ht_destroy(HashTable *table) {
     /* First free allocated keys. */
     size_t i;
     for (i = 0; i < table->capacity; i++) {
@@ -93,7 +93,7 @@ static uint64_t hash_key(const char *key) {
     return hash;
 }
 
-void *st_get(ht *table, const char *key) {
+void *ht_get(HashTable *table, const char *key) {
     /* AND hash with capacity-1 to ensure it's within entries array. */
     uint64_t hash = hash_key(key);
     size_t index = (size_t) (hash & (uint64_t) (table->capacity - 1));
@@ -116,7 +116,7 @@ void *st_get(ht *table, const char *key) {
 }
 
 /* Internal function to set an entry (without expanding table). */
-static const char *st_set_entry(ht_entry *entries, size_t capacity, const char *key, void *value, size_t *plength) {
+static const char *ht_set_entry(ht_entry *entries, size_t capacity, const char *key, void *value, size_t *plength) {
     /* AND hash with capacity-1 to ensure it's within entries array. */
     uint64_t hash = hash_key(key);
     size_t index = (size_t) (hash & (uint64_t) (capacity - 1));
@@ -151,7 +151,7 @@ static const char *st_set_entry(ht_entry *entries, size_t capacity, const char *
 
 /* Expand hash table to twice its current size. Return true on success, */
 /* false if out of memory. */
-static bool st_expand(ht *table) {
+static bool ht_expand(HashTable *table) {
     /* Allocate new entries array. */
     size_t new_capacity = table->capacity * 2;
     if (new_capacity < table->capacity) {
@@ -166,7 +166,7 @@ static bool st_expand(ht *table) {
     for (i = 0; i < table->capacity; i++) {
         ht_entry entry = table->entries[i];
         if (entry.key != NULL) {
-            st_set_entry(new_entries, new_capacity, entry.key, entry.value, NULL);
+            ht_set_entry(new_entries, new_capacity, entry.key, entry.value, NULL);
         }
     }
 
@@ -177,36 +177,36 @@ static bool st_expand(ht *table) {
     return true;
 }
 
-const char *st_set(ht *table, const char *key, void *value) {
+const char *ht_set(HashTable *table, const char *key, void *value) {
     if (value == NULL) {
         return NULL;
     }
 
     /* If length will exceed half of current capacity, expand it. */
     if (table->length >= table->capacity / 2) {
-        if (!st_expand(table)) {
+        if (!ht_expand(table)) {
             return NULL;
         }
     }
 
     /* Set entry and update length. */
-    return st_set_entry(table->entries, table->capacity, key, value, &table->length);
+    return ht_set_entry(table->entries, table->capacity, key, value, &table->length);
 }
 
-size_t st_length(ht *table) {
+size_t ht_length(HashTable *table) {
     return table->length;
 }
 
-hti st_iterator(ht *table) {
-    hti it;
+HashTableIterator ht_iterator(HashTable *table) {
+    HashTableIterator it;
     it._table = table;
     it._index = 0;
     return it;
 }
 
-bool st_next(hti *it) {
+bool ht_next(HashTableIterator *it) {
     /* Loop till we've hit end of entries array. */
-    ht *table = it->_table;
+    HashTable *table = it->_table;
     while (it->_index < table->capacity) {
         size_t i = it->_index;
         it->_index++;

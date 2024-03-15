@@ -6,9 +6,9 @@
 #include "ast.h"
 #include "lexer/lexer.h"
 
-typedef struct parser parser;
+typedef struct parser Parser;
 
-parser *init_parser(Lexer *lexer);
-ast_program *parse(parser *parser);
+Parser *init_parser(Lexer *lexer);
+AST_Program *parse(Parser *parser);
 
 #endif

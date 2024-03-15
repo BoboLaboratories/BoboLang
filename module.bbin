@@ -13,30 +13,7 @@
     CALL io.net.version
     STORE 4
 
-
-
-
 #CONST_ADDR
      Hello World!
 
 #FUN_ADRR
-
-
-
-const g0 = __get_so_pipe()
-
-fun move(const x, y = std.default(), offset = o) {
-    const c = io.net.version(x)
-    const a = net.send(a(net.a.b(c(d()))), b)
-    const b = daje
-    a = b
-    http_send() // -> io.net.http_send()
-}
-
-fun send(y) {
-
-}
-
-native fun __get_so_pipe()
-
-private native fun println()

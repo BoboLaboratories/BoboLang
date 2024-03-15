@@ -9,7 +9,7 @@
 typedef struct {
     char *qid;
     ArrayList *args;
-} ast_expr_invoke;
+} AST_ExprInvoke;
 
 typedef struct {
     enum {
@@ -18,24 +18,24 @@ typedef struct {
         EXPR_NUMERIC_LITERAL
     } type;
     void *value;
-} ast_expr;
+} AST_Expr;
 
 typedef struct {
     char *qid;
     ArrayList *args;
-} ast_stat_invoke;
+} AST_StatInvoke;
 
 typedef struct {
     bool is_private;
     bool is_const;
     char *name;
-    ast_expr *init;
-} ast_stat_var_decl;
+    AST_Expr *init;
+} AST_StatVarDecl;
 
 typedef struct {
     char *qid;
-    ast_expr *expr;
-} ast_stat_var_assign;
+    AST_Expr *expr;
+} AST_StatVarAssign;
 
 typedef struct {
     enum {
@@ -44,20 +44,21 @@ typedef struct {
         STAT_VAR_ASSIGN
     } type;
     void *value;
-} ast_stat;
+} AST_Stat;
 
 typedef struct {
     bool is_const;
     char *name;
-    ast_expr *expr;
-} ast_funarg;
+    AST_Expr *expr;
+} AST_FunArg;
 
 typedef struct {
     bool is_private;
     bool is_native;
     char *name;
     ArrayList *args;
-} ast_fundef;
+    ArrayList *stats;
+} AST_FunDef;
 
 typedef struct {
     enum {
@@ -65,11 +66,11 @@ typedef struct {
         PROGRAM_FUNDEF
     } type;
     void *value;
-} ast_program_stat;
+} AST_ProgramStat;
 
 typedef struct {
     ArrayList *imports;
     ArrayList *stats;
-} ast_program;
+} AST_Program;
 
 #endif
