@@ -106,7 +106,7 @@ static char *qid(Parser *p) {
         char *id = strdup(p->prev->lexeme);
         return qidp(p, id);
     default:
-        print(E, "qid");
+        print(E, "name");
         exit(EXIT_FAILURE);
     }
 }
@@ -161,8 +161,7 @@ static ArrayList *invokearglist(Parser *p) {
     switch (p->curr->tag) {
     case NUM:
     case ID: {
-        ArrayList *args;
-        al_create(&args, MAX_OF(u1));
+        ArrayList *args = al_create(MAX_OF(u1));
         al_add(args, expr(p));
         invokearglistp(p, args);
         return args;
@@ -233,7 +232,7 @@ static void qidstatp(Parser *p, char *qid, AST_Stat *node) {
     case ASSIGN:
         node->type = STAT_VAR_ASSIGN;
         node->value = malloc(sizeof(AST_StatVarAssign));
-        ((AST_StatVarAssign *) node->value)->qid = qid;
+        ((AST_StatVarAssign *) node->value)->name = qid;
         ((AST_StatVarAssign *) node->value)->expr = assign(p);
         break;
     case LPT:
@@ -269,23 +268,24 @@ static AST_Expr *statvardeclp(Parser *p) {
 
 static AST_StatVarDecl *statvardecl(Parser *p) {
     AST_StatVarDecl *node = malloc(sizeof(AST_StatVarDecl));
-    node->is_private = false;
+    node->sig = malloc(sizeof(VariableSignature));
+    node->sig->is_private = false;
 
     switch (p->curr->tag) {
     case CONST: {
         match(p, CONST);
         match(p, ID);
-        node->name = strdup(p->prev->lexeme);
+        node->sig->name = strdup(p->prev->lexeme);
         node->init = assign(p);
-        node->is_const = true;
+        node->sig->is_const = true;
         return node;
     }
     case VAR:
         match(p, VAR);
         match(p, ID);
-        node->name = strdup(p->prev->lexeme);
+        node->sig->name = strdup(p->prev->lexeme);
         node->init = statvardeclp(p);
-        node->is_const = false;
+        node->sig->is_const = false;
         return node;
     default:
         print(E, "statvardecl");
@@ -315,7 +315,7 @@ static AST_Stat *stat(Parser *p) {
 
 static void statlistp(Parser *p, AST_FunDef *fun) {
     if (fun->stats == NULL && p->curr->tag != RPG) {
-        al_create(&fun->stats, MAX_OF(u4));
+        fun->stats = al_create(MAX_OF(u4));
     }
 
     switch (p->curr->tag) {
@@ -374,7 +374,7 @@ static void fundefarglistp(Parser *p, AST_FunDef *fun) {
         match(p, COMMA);
         AST_FunArg *node = funarg(p);
         node->expr = assign(p);
-        al_add(fun->args, node);
+        al_add(fun->sig->args, node);
         fundefarglistp(p, fun);
         break;
     case RPT:
@@ -387,7 +387,7 @@ static void fundefarglistp(Parser *p, AST_FunDef *fun) {
 
 static void funarglistp(Parser *p, AST_FunDef *fun, AST_FunArg *arg) {
     /* arg needs to be added regardless if its follows */
-    al_add(fun->args, arg);
+    al_add(fun->sig->args, arg);
 
     switch (p->curr->tag) {
     case COMMA:
@@ -412,7 +412,7 @@ static void funarglist(Parser *p, AST_FunDef *fun) {
     case CONST:
     case ID: {
         AST_FunArg *node = funarg(p);
-        al_create(&fun->args, MAX_OF(u1));
+        fun->sig->args = al_create(MAX_OF(u1));
         funarglistp(p, fun, node);
         break;
     }
@@ -431,11 +431,12 @@ static AST_FunDef *funsig(Parser *p) {
         match(p, ID);
 
         AST_FunDef *node = malloc(sizeof(AST_FunDef));
-        node->name = strdup(p->prev->lexeme);
-        node->is_private = false;
-        node->is_native = false;
+        node->sig = malloc(sizeof(FunctionSignature));
+        node->sig->name = strdup(p->prev->lexeme);
+        node->sig->is_private = false;
+        node->sig->is_native = false;
+        node->sig->args = NULL;
         node->stats = NULL;
-        node->args = NULL;
 
         match(p, LPT);
         funarglist(p, node);
@@ -465,7 +466,7 @@ static AST_FunDef *nativefundef(Parser *p) {
     case NATIVE:
         match(p, NATIVE);
         AST_FunDef *node = funsig(p);
-        node->is_native = true;
+        node->sig->is_native = true;
         return node;
     default:
         print(E, "nativefundef");
@@ -486,13 +487,13 @@ static void privatefilep(Parser *p, AST_ProgramStat *node) {
         node->value = malloc(sizeof(AST_Stat));
         ((AST_Stat *) node->value)->type = STAT_VAR_DECL;
         ((AST_Stat *) node->value)->value = statvardecl(p);
-        ((AST_StatVarDecl *) ((AST_Stat *) node->value)->value)->is_private = true;
+        ((AST_StatVarDecl *) ((AST_Stat *) node->value)->value)->sig->is_private = true;
         break;
     case NATIVE:
     case FUN:
         node->type = PROGRAM_FUNDEF;
         node->value = (p->curr->tag == NATIVE) ? nativefundef(p) : fundef(p);
-        ((AST_FunDef *) node->value)->is_private = true;
+        ((AST_FunDef *) node->value)->sig->is_private = true;
         break;
     default:
         print(E, "privatefilep");
@@ -584,8 +585,8 @@ Parser *init_parser(Lexer *lexer) {
     p->curr = malloc(sizeof(token));
 
     p->program = malloc(sizeof(AST_Program));
-    al_create(&p->program->imports, MAX_OF(u4));
-    al_create(&p->program->stats, MAX_OF(u4));
+    p->program->imports = al_create(MAX_OF(u4));
+    p->program->stats = al_create(MAX_OF(u4));
 
     return p;
 }

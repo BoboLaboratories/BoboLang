@@ -29,11 +29,15 @@ typedef struct {
     bool is_private;
     bool is_const;
     char *name;
+} VariableSignature;
+
+typedef struct {
+    VariableSignature *sig;
     AST_Expr *init;
 } AST_StatVarDecl;
 
 typedef struct {
-    char *qid;
+    char *name;
     AST_Expr *expr;
 } AST_StatVarAssign;
 
@@ -57,6 +61,10 @@ typedef struct {
     bool is_native;
     char *name;
     ArrayList *args;
+} FunctionSignature;
+
+typedef struct {
+    FunctionSignature *sig;
     ArrayList *stats;
 } AST_FunDef;
 

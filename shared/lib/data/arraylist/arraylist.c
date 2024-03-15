@@ -11,12 +11,15 @@ struct array_list {
     unsigned long capacity;
 };
 
-void al_create(ArrayList **list, unsigned long max_size) {
-    *list = malloc(sizeof(ArrayList));
-    (*list)->max_size = max_size;
-    (*list)->values = NULL;
-    (*list)->capacity = 0;
-    (*list)->size = 0;
+ArrayList *al_create(unsigned long max_size) {
+    ArrayList *list = malloc(sizeof(ArrayList));
+
+    list->max_size = max_size;
+    list->values = NULL;
+    list->capacity = 0;
+    list->size = 0;
+
+    return list;
 }
 
 bool al_add(ArrayList *list, void *elem) {
@@ -37,7 +40,7 @@ bool al_add(ArrayList *list, void *elem) {
     return true;
 }
 
-void *al_get(ArrayList *list, int index) {
+void *al_get(ArrayList *list, unsigned long index) {
     void *elem = NULL;
     if (index <= al_size(list)) {
         elem = list->values[index];
@@ -63,4 +66,17 @@ void list_free(ArrayList *list) {
         free(list->values[i]);
     }
     free(list);
+}
+
+ArrayListIterator al_iterator(ArrayList *list) {
+    return (ArrayListIterator) {
+        .list = list,
+        .index = 0
+    };
+}
+
+void *al_iterator_next(ArrayListIterator *iterator) {
+    void *elem = al_get(iterator->list, iterator->index);
+    iterator->index++;
+    return elem;
 }

@@ -1,13 +1,8 @@
-const saedf = 1
+const k = 1
 
-fun main(const k, k, z = 3) {
-    const c = 3
-    a = 423e23.     // a very well formed number
+fun k() {
 
-    k = 10
 }
-
-var k
 
 /*
 import a.b.c.d

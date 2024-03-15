@@ -5,11 +5,25 @@
 
 typedef struct array_list ArrayList;
 
-void al_create(ArrayList **list, unsigned long max_size);
+typedef struct {
+    ArrayList *list;
+    unsigned long index;
+} ArrayListIterator;
+
+ArrayList *al_create(unsigned long max_size);
+
 bool al_add(ArrayList *list, void *elem);
-void *al_get(ArrayList *list, int index);
+
+void *al_get(ArrayList *list, unsigned long index);
+
 bool al_is_full(ArrayList *list);
+
 unsigned long al_size(ArrayList *list);
+
 unsigned long al_max_size(ArrayList *list);
+
+ArrayListIterator al_iterator(ArrayList *list);
+
+void *al_iterator_next(ArrayListIterator *iterator);
 
 #endif

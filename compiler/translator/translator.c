@@ -5,6 +5,7 @@
 #include "lexer/lexer.h"
 #include "parser/parser.h"
 #include "translator/translator.h"
+#include "semantic/semantic_analyzer.h"
 
 struct translator {
     Meta *meta;
@@ -23,10 +24,16 @@ Translator *init_translator(Meta *meta) {
 static void disassemble(AST_Program *program);
 
 BinaryModule *translate(Translator *translator) {
-    Lexer *lexer = init_lexer(translator->meta);
+    Meta *meta = translator->meta;
+
+    Lexer *lexer = init_lexer(meta);
     Parser *parser = init_parser(lexer);
-    AST_Program *program = parse(parser);
-    disassemble(program);
+    AST_Program *ast = parse(parser);
+
+    SemanticAnalyzer *sem = init_semantic_analyzer(meta, ast);
+    analyze(sem);
+
+    disassemble(ast);
     return NULL;
 }
 
@@ -77,15 +84,15 @@ static void print_stat(char *prefix, AST_Stat *node) {
         case STAT_VAR_DECL: {
             AST_StatVarDecl *v = node->value;
             printf("%s", prefix);
-            if (v->is_private) printf("private ");
-            printf(v->is_const ? "const " : "var ");
-            printf("%s", v->name);
+            if (v->sig->is_private) printf("private ");
+            printf(v->sig->is_const ? "const " : "var ");
+            printf("%s", v->sig->name);
             print_expr(" = ", v->init);
             break;
         }
         case STAT_VAR_ASSIGN: {
             AST_StatVarAssign *v = node->value;
-            printf("%s%s", prefix, v->qid);
+            printf("%s%s", prefix, v->name);
             print_expr(" = ", v->expr);
             break;
         }
@@ -108,28 +115,28 @@ static void disassemble(AST_Program *program) {
         switch (ps->type) {
         case PROGRAM_FUNDEF: {
             AST_FunDef *f = ps->value;
-            if (f->is_private) printf("private ");
-            if (f->is_native) printf("native ");
-            printf("fun %s(", f->name);
-            if (f->args != NULL) {
-                for (j = 0; j < al_size(f->args); j++) {
-                    AST_FunArg *a = al_get(f->args, j);
+            if (f->sig->is_private) printf("private ");
+            if (f->sig->is_native) printf("native ");
+            printf("fun %s(", f->sig->name);
+            if (f->sig->args != NULL) {
+                for (j = 0; j < al_size(f->sig->args); j++) {
+                    AST_FunArg *a = al_get(f->sig->args, j);
                     if (a->is_const) printf("const ");
                     printf("%s", a->name);
                     print_expr(" = ", a->expr);
-                    if (j < al_size(f->args) - 1) {
+                    if (j < al_size(f->sig->args) - 1) {
                         printf(", ");
                     }
                 }
             }
             printf(")");
-            if (!f->is_native) printf(" {\n");
+            if (!f->sig->is_native) printf(" {\n");
             if (f->stats != NULL) {
                 for (j = 0; j < al_size(f->stats); j++) {
                     print_stat("\t", al_get(f->stats, j));
                 }
             }
-            if (!f->is_native) printf("}");
+            if (!f->sig->is_native) printf("}");
             break;
         }
         case PROGRAM_STAT: {
