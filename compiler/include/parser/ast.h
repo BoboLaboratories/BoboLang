@@ -31,9 +31,12 @@
 #include <stdbool.h>
 #include <sys/types.h>
 
+#include "lang/binary/base.h"
 #include "lib/data/arraylist/arraylist.h"
 
-/* Helper data structures */
+/*
+ * Helper data structures
+ */
 typedef struct {
     bool is_private;
     bool is_const;
@@ -44,15 +47,18 @@ typedef struct {
     bool is_private;
     bool is_native;
     char *name;
+    u1 min_args;
     ArrayList *args;
 } FunctionSignature;
 
 
-/* AST nodes */
+/*
+ * AST nodes
+ */
 typedef struct {
-    char *qid;
+    void *fun;
     ArrayList *args;
-} AST_ExprInvoke;
+} AST_Invoke;
 
 typedef struct {
     enum {
@@ -60,21 +66,16 @@ typedef struct {
         EXPR_INVOKE,
         EXPR_NUMERIC_LITERAL
     } type;
-    void *value;
+    void *expr;
 } AST_Expr;
 
 typedef struct {
-    char *qid;
-    ArrayList *args;
-} AST_StatInvoke;
-
-typedef struct {
-    VariableSignature *sig;
+    void *var;
     AST_Expr *init;
 } AST_StatVarDecl;
 
 typedef struct {
-    char *name;
+    void *var;
     AST_Expr *expr;
 } AST_StatVarAssign;
 
@@ -88,13 +89,12 @@ typedef struct {
 } AST_Stat;
 
 typedef struct {
-    bool is_const;
-    char *name;
+    void *arg;
     AST_Expr *expr;
 } AST_FunArg;
 
 typedef struct {
-    FunctionSignature *sig;
+    void *fun;
     ArrayList *stats;
 } AST_FunDef;
 

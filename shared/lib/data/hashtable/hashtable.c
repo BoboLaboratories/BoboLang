@@ -101,7 +101,7 @@ void *ht_get(HashTable *table, const char *key) {
     /* Loop till we find an empty entry. */
     while (table->entries[index].key != NULL) {
         if (strcmp(key, table->entries[index].key) == 0) {
-            /* Found key, return value. */
+            /* Found key, return expr. */
             return table->entries[index].value;
         }
         /* Key wasn't in this slot, move to next (linear probing). */
@@ -124,7 +124,7 @@ static const char *ht_set_entry(ht_entry *entries, size_t capacity, const char *
     /* Loop till we find an empty entry. */
     while (entries[index].key != NULL) {
         if (strcmp(key, entries[index].key) == 0) {
-            /* Found key (it already exists), update value. */
+            /* Found key (it already exists), update expr. */
             entries[index].value = value;
             return entries[index].key;
         }
@@ -211,7 +211,7 @@ bool ht_next(HashTableIterator *it) {
         size_t i = it->_index;
         it->_index++;
         if (table->entries[i].key != NULL) {
-            /* Found next non-empty item, update iterator key and value. */
+            /* Found next non-empty item, update iterator key and expr. */
             ht_entry entry = table->entries[i];
             it->key = entry.key;
             it->value = entry.value;

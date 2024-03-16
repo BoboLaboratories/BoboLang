@@ -45,8 +45,8 @@ static void pass1_stat(SemanticAnalyzer *a, AST_Stat *node) {
     switch (node->type) {
     case STAT_VAR_DECL: {
         AST_StatVarDecl *stat = node->value;
-        if (st_get(a->st, VAR, stat->sig->name)) {
-            printf("[%s:%d] error: variable %s is already defined\n", a->meta->pathname, 0, stat->sig->name);
+        if (st_get(a->st, VAR, stat->sig->var)) {
+            printf("[%s:%d] error: variable %s is already defined\n", a->meta->pathname, 0, stat->sig->var);
             exit(EXIT_FAILURE);
         }
         st_set(a->st, VAR, stat->sig);
@@ -54,13 +54,13 @@ static void pass1_stat(SemanticAnalyzer *a, AST_Stat *node) {
     }
     case STAT_VAR_ASSIGN: {
         AST_StatVarAssign *stat = node->value;
-        Symbol *symbol = st_get(a->st, VAR, stat->name);
+        Symbol *symbol = st_get(a->st, VAR, stat->var);
         VariableSignature *desc = symbol->info;
         if (desc == NULL) {
-            printf("[%s:%d] error: unknown symbol %s\n", a->meta->pathname, 0, stat->name);
+            printf("[%s:%d] error: unknown symbol %s\n", a->meta->pathname, 0, stat->var);
             exit(EXIT_FAILURE);
         } else if (desc->is_const) {
-            printf("[%s:%d] error: cannot reassign constant variable %s\n", a->meta->pathname, 0, stat->name);
+            printf("[%s:%d] error: cannot reassign constant variable %s\n", a->meta->pathname, 0, stat->var);
             exit(EXIT_FAILURE);
         }
         break;

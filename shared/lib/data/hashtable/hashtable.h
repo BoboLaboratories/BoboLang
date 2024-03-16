@@ -1,4 +1,4 @@
-    /*
+/*
  * MIT License
  *
  * Copyright (c) 2021 Ben Hoyt
@@ -32,7 +32,9 @@
 #include <stdbool.h>
 #include <sys/types.h>
 
-/* Hash table structure: create with ht_create, free with ht_destroy. */
+/*
+ * Hash table structure: create with ht_create, free with ht_destroy.
+ */
 typedef struct hash_table HashTable;
 
 /*
@@ -47,12 +49,12 @@ void ht_destroy(HashTable *table);
 
 /*
  * Get item with given key (NUL-terminated) from hash table.
- * Return value (which was set with ht_set), or NULL if key not found.
+ * Return expr (which was set with ht_set), or NULL if key not found.
  */
 void *ht_get(HashTable *table, const char *key);
 
 /*
- * Set item with given key (NUL-terminated) to value (which must not be NULL).
+ * Set item with given key (NUL-terminated) to expr (which must not be NULL).
  * If not already present in table, key is copied to newly allocated memory
  * (keys are freed automatically when ht_destroy is called).
  * Return address of copied key, or NULL if out of memory.
@@ -69,7 +71,7 @@ size_t ht_length(HashTable *table);
  */
 typedef struct {
     const char *key;  /* current key */
-    void *value;      /* current value */
+    void *value;      /* current expr */
 
     /* Don't use these fields directly. */
     HashTable *_table;       /* reference to hash table being iterated */
@@ -83,7 +85,7 @@ HashTableIterator ht_iterator(HashTable *table);
 
 /*
  * Move iterator to next item in hash table, update iterator's key
- * and value to current item, and return true. If there are no more
+ * and expr to current item, and return true. If there are no more
  * items, return false. Don't call ht_set during iteration.
  */
 bool ht_next(HashTableIterator *it);

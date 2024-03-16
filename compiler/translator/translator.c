@@ -60,21 +60,21 @@ BinaryModule *translate(Translator *translator) {
     SemanticAnalyzer *sem = init_semantic_analyzer(meta, ast);
     analyze(sem);
 
-    disassemble(ast);
+    /* disassemble(ast); */
     return NULL;
 }
 
-
+/*
 static void print_expr(char *prefix, AST_Expr *node) {
     if (node != NULL) {
         switch (node->type) {
         case EXPR_QID: {
-            printf("%s%s", prefix, (char *) node->value);
+            printf("%s%s", prefix, (char *) node->expr);
             break;
         }
         case EXPR_INVOKE: {
             int i;
-            AST_ExprInvoke *invoke = node->value;
+            AST_Invoke *invoke = node->expr;
             printf("%s%s(", prefix, invoke->qid);
             if (invoke->args != NULL) {
                 for (i = 0; i < al_size(invoke->args); i++) {
@@ -85,7 +85,7 @@ static void print_expr(char *prefix, AST_Expr *node) {
             break;
         }
         case EXPR_NUMERIC_LITERAL: {
-            printf("%s%g", prefix, *((double *) node->value));
+            printf("%s%g", prefix, *((double *) node->expr));
         }
         default:
             break;
@@ -113,13 +113,13 @@ static void print_stat(char *prefix, AST_Stat *node) {
             printf("%s", prefix);
             if (v->sig->is_private) printf("private ");
             printf(v->sig->is_const ? "const " : "var ");
-            printf("%s", v->sig->name);
+            printf("%s", v->sig->var);
             print_expr(" = ", v->init);
             break;
         }
         case STAT_VAR_ASSIGN: {
             AST_StatVarAssign *v = node->value;
-            printf("%s%s", prefix, v->name);
+            printf("%s%s", prefix, v->var);
             print_expr(" = ", v->expr);
             break;
         }
@@ -175,4 +175,4 @@ static void disassemble(AST_Program *program) {
         }
         printf("\n");
     }
-}
+}*/
