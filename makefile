@@ -22,10 +22,6 @@ bobo: vm/*
 .SILENT: bobo
 
 # Data structure libraries
-bin/lib/data/%: shared/data/%/* | makedir
-	$(CC) $(CFLAGS) -c $(filter %.c,$^) -o $@
-
-# Data structure libraries
 bin/lib/data/arraylist: shared/lib/data/arraylist/* | makedir
 	$(CC) $(CFLAGS) -c $(filter %.c,$^) -o $@
 .SILENT: bin/lib/data/arraylist
