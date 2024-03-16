@@ -1,6 +1,6 @@
 const k = 1
 
-fun k() {
+fun k(x, y) {
 
 }
 

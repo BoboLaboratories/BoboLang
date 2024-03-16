@@ -1,7 +1,9 @@
+#include <stdio.h>
 #include <stdlib.h>
 #include <malloc.h>
 #include <string.h>
 
+#include "lib/console/console.h"
 #include "semantic/semantic_analyzer.h"
 #include "lib/symboltable/symboltable.h"
 #include "lib/data/arraylist/arraylist.h"
@@ -16,16 +18,17 @@ static void pass1_stat(SemanticAnalyzer *a, AST_Stat *node) {
     switch (node->type) {
     case STAT_VAR_DECL: {
         AST_StatVarDecl *stat = node->value;
-        if (st_get(a->st, stat->sig->name)) {
+        if (st_get(a->st, VAR, stat->sig->name)) {
             printf("[%s:%d] error: variable %s is already defined\n", a->meta->pathname, 0, stat->sig->name);
             exit(EXIT_FAILURE);
         }
-        st_set(a->st, stat->sig->name, stat->sig);
+        st_set(a->st, VAR, stat->sig);
         break;
     }
     case STAT_VAR_ASSIGN: {
         AST_StatVarAssign *stat = node->value;
-        VariableSignature *desc = st_get(a->st, stat->name);
+        Symbol *symbol = st_get(a->st, VAR, stat->name);
+        VariableSignature *desc = symbol->info;
         if (desc == NULL) {
             printf("[%s:%d] error: unknown symbol %s\n", a->meta->pathname, 0, stat->name);
             exit(EXIT_FAILURE);
@@ -61,12 +64,12 @@ static bool is_fun_sig_equal(FunctionSignature *a, FunctionSignature *b) {
 }
 
 static void pass1_fun_def(SemanticAnalyzer *a, AST_FunDef *fun) {
-    FunctionSignature *pre = st_get(a->st, fun->sig->name);
-    if (is_fun_sig_equal(pre, fun->sig)) {
+    Symbol *symbol = st_get(a->st, FUN, fun->sig);
+    if (symbol != NULL && is_fun_sig_equal(fun->sig, symbol->info)) {
         printf("[%s:%d] error: function %s cannot be redefined\n", a->meta->pathname, 0, fun->sig->name);
         exit(EXIT_FAILURE);
     }
-    st_set(a->st, fun->sig->name, fun->sig);
+    st_set(a->st, FUN, fun->sig);
 }
 
 static void pass1(SemanticAnalyzer *a) {
