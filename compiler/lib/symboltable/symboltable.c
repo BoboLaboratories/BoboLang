@@ -4,7 +4,6 @@
 
 #include "parser/ast.h"
 #include "lang/binary/base.h"
-#include "lib/console/console.h"
 #include "lib/symboltable/symboltable.h"
 #include "lib/data/hashtable/hashtable.h"
 
@@ -102,6 +101,16 @@ SymbolTable *st_pop(SymbolTable *curr) {
     return curr->prev;
 }
 
+static Symbol *st_get_entry(SymbolTable *table, char *key) {
+    Symbol *value = ht_get(table->ht, key);
+
+    if (value == NULL && table->prev != NULL) {
+        value = st_get_entry(table->prev, key);
+    }
+
+    return value;
+}
+
 Symbol *st_get(SymbolTable *table, SymbolType type, ...) {
     FunctionSignature *sig = NULL;
     char *name = NULL;
@@ -122,13 +131,10 @@ Symbol *st_get(SymbolTable *table, SymbolType type, ...) {
     va_end(args);
 
     char *key = mk_key(type, name, arity);
-    Symbol *value = ht_get(table->ht, key);
-    if (value == NULL && table->prev != NULL) {
-        value = st_get(table->prev, type, key);
-    }
+    Symbol *symbol = st_get_entry(table, key);
     free(key);
 
-    return value;
+    return symbol;
 }
 
 Symbol *st_set(SymbolTable *table, SymbolType type, ...) {
