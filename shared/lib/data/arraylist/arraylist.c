@@ -69,7 +69,7 @@ bool al_add(ArrayList *list, void *elem) {
 
 void *al_get(ArrayList *list, unsigned long index) {
     void *elem = NULL;
-    if (index <= al_size(list)) {
+    if (index < al_size(list)) {
         elem = list->values[index];
     }
     return elem;

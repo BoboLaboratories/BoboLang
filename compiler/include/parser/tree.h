@@ -51,7 +51,6 @@ typedef struct {
     ArrayList *args;
 } FunctionSignature;
 
-
 /*
  * AST nodes
  */
