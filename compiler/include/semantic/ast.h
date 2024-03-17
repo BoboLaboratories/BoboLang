@@ -25,18 +25,62 @@
  * SOFTWARE.
  */
 
-#ifndef BOBO_LANG_COMPILER_PARSER_H
-#define BOBO_LANG_COMPILER_PARSER_H
+#ifndef BOBO_LANG_COMPILER_AST_H
+#define BOBO_LANG_COMPILER_AST_H
 
-#include <stdio.h>
+#include "parser/tree.h"
+#include "lib/symboltable/symboltable.h"
 
-#include "tree.h"
-#include "lexer/lexer.h"
+/*
+ * AST nodes
+ */
+typedef struct {
+    Symbol *symbol;
+    FunDefSignature *fun;
+    ArrayList *args;
+} AST_Invoke;
 
-typedef struct parser Parser;
+typedef struct {
+    ExprType type;
+    void *expr;
+} AST_Expr;
 
-Parser *init_parser(Lexer *lexer);
+typedef struct {
+    Symbol *symbol;
+    VarDeclSignature *var;
+    AST_Expr *init;
+} AST_StatVarDecl;
 
-PT_Program *parse(Parser *parser);
+typedef struct {
+    Symbol *symbol;
+    VarDeclSignature *var;
+    AST_Expr *expr;
+} AST_StatVarAssign;
+
+typedef struct {
+    StatType type;
+    void *value;
+} AST_Stat;
+
+typedef struct {
+    Symbol *symbol;
+    FunArgSignature *arg;
+    AST_Expr *init;
+} AST_FunArg;
+
+typedef struct {
+    Symbol *fun;
+    ArrayList *stats;
+} AST_FunDef;
+
+typedef struct {
+    ProgramStatType type;
+    void *value;
+} AST_ProgramStat;
+
+typedef struct {
+    ArrayList *imports;
+    ArrayList *stats;
+} AST_Program;
 
 #endif

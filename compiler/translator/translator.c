@@ -36,7 +36,7 @@
 
 struct translator {
     Meta *meta;
-    AST_Program *program;
+    PT_Program *program;
 };
 
 Translator *init_translator(Meta *meta) {
@@ -48,14 +48,14 @@ Translator *init_translator(Meta *meta) {
     return translator;
 }
 
-static void disassemble(AST_Program *program);
+static void disassemble(PT_Program *program);
 
 BinaryModule *translate(Translator *translator) {
     Meta *meta = translator->meta;
 
     Lexer *lexer = init_lexer(meta);
     Parser *parser = init_parser(lexer);
-    AST_Program *ast = parse(parser);
+    PT_Program *ast = parse(parser);
 
     SemanticAnalyzer *sem = init_semantic_analyzer(meta, ast);
     analyze(sem);
@@ -65,7 +65,7 @@ BinaryModule *translate(Translator *translator) {
 }
 
 /*
-static void print_expr(char *prefix, AST_Expr *node) {
+static void print_expr(char *prefix, PT_Expr *node) {
     if (node != NULL) {
         switch (node->type) {
         case EXPR_QID: {
@@ -74,7 +74,7 @@ static void print_expr(char *prefix, AST_Expr *node) {
         }
         case EXPR_INVOKE: {
             int i;
-            AST_Invoke *invoke = node->expr;
+            PT_Invoke *invoke = node->expr;
             printf("%s%s(", prefix, invoke->qid);
             if (invoke->args != NULL) {
                 for (i = 0; i < al_size(invoke->args); i++) {
@@ -93,7 +93,7 @@ static void print_expr(char *prefix, AST_Expr *node) {
     }
 }
 
-static void print_stat(char *prefix, AST_Stat *node) {
+static void print_stat(char *prefix, PT_Stat *node) {
     if (node != NULL) {
         switch (node->type) {
         case STAT_INVOKE: {
@@ -109,7 +109,7 @@ static void print_stat(char *prefix, AST_Stat *node) {
             break;
         }
         case STAT_VAR_DECL: {
-            AST_StatVarDecl *v = node->value;
+            PT_StatVarDecl *v = node->value;
             printf("%s", prefix);
             if (v->sig->is_private) printf("private ");
             printf(v->sig->is_const ? "const " : "var ");
@@ -118,7 +118,7 @@ static void print_stat(char *prefix, AST_Stat *node) {
             break;
         }
         case STAT_VAR_ASSIGN: {
-            AST_StatVarAssign *v = node->value;
+            PT_StatVarAssign *v = node->value;
             printf("%s%s", prefix, v->var);
             print_expr(" = ", v->expr);
             break;
@@ -128,7 +128,7 @@ static void print_stat(char *prefix, AST_Stat *node) {
     printf("\n");
 }
 
-static void disassemble(AST_Program *program) {
+static void disassemble(PT_Program *program) {
     printf("\n");
 
     int i, j;
@@ -138,18 +138,18 @@ static void disassemble(AST_Program *program) {
     printf("\n");
 
     for (i = 0; i < al_size(program->stats); i++) {
-        AST_ProgramStat *ps = al_get(program->stats, i);
+        PT_ProgramStat *ps = al_get(program->stats, i);
         switch (ps->type) {
         case PROGRAM_FUNDEF: {
-            AST_FunDef *f = ps->value;
+            PT_FunDef *f = ps->value;
             if (f->sig->is_private) printf("private ");
             if (f->sig->is_native) printf("native ");
-            printf("fun %s(", f->sig->name);
+            printf("fun %s(", f->sig->var);
             if (f->sig->args != NULL) {
                 for (j = 0; j < al_size(f->sig->args); j++) {
-                    AST_FunArg *a = al_get(f->sig->args, j);
+                    PT_FunArg *a = al_get(f->sig->args, j);
                     if (a->is_const) printf("const ");
-                    printf("%s", a->name);
+                    printf("%s", a->var);
                     print_expr(" = ", a->expr);
                     if (j < al_size(f->sig->args) - 1) {
                         printf(", ");

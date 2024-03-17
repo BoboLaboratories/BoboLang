@@ -1,4 +1,4 @@
-/*
+    /*
  * MIT License
  *
  * Copyright (C) 2024 BoboLabs.net
@@ -29,8 +29,8 @@
 #define BOBO_LANG_COMPILER_LIB_SYMBOLTABLE_H
 
 typedef enum {
-    VAR,
-    FUN
+    SYM_VAR,
+    SYM_FUN
 } SymbolType;
 
 typedef enum {
@@ -43,6 +43,7 @@ typedef struct {
     Scope scope;
     u2 address;
     void *info;
+    char *key;
 } Symbol;
 
 typedef struct symbol_table SymbolTable;

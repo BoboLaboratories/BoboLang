@@ -28,13 +28,14 @@
 #ifndef BOBO_LANG_COMPILER_SEMANTIC_ANALYZER_H
 #define BOBO_LANG_COMPILER_SEMANTIC_ANALYZER_H
 
+#include "ast.h"
 #include "meta.h"
-#include "parser/ast.h"
+#include "parser/tree.h"
 #include "lang/binary/module.h"
 
 typedef struct semantic_analyzer SemanticAnalyzer;
 
-SemanticAnalyzer *init_semantic_analyzer(Meta *meta, AST_Program *ast);
+SemanticAnalyzer *init_semantic_analyzer(Meta *meta, PT_Program *ast);
 
 void analyze(SemanticAnalyzer *analyzer);
 

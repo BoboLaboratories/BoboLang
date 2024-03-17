@@ -25,8 +25,8 @@
  * SOFTWARE.
  */
 
-#ifndef BOBO_LANG_COMPILER_AST_H
-#define BOBO_LANG_COMPILER_AST_H
+#ifndef BOBO_LANG_COMPILER_PARSE_TREE_H
+#define BOBO_LANG_COMPILER_PARSE_TREE_H
 
 #include <stdbool.h>
 #include <sys/types.h>
@@ -41,73 +41,85 @@ typedef struct {
     bool is_private;
     bool is_const;
     char *name;
-} VariableSignature;
+} VarDeclSignature;
+
+typedef struct {
+    bool is_const;
+    char *name;
+} FunArgSignature;
 
 typedef struct {
     bool is_private;
     bool is_native;
     char *name;
-    u1 min_args;
+    u1 min_args_count;
     ArrayList *args;
-} FunctionSignature;
+} FunDefSignature;
+
 
 /*
- * AST nodes
+ * Parse tree nodes
  */
 typedef struct {
-    void *fun;
+    char *fun;
     ArrayList *args;
-} AST_Invoke;
+} PT_Invoke;
+
+typedef enum {
+    EXPR_QID,
+    EXPR_INVOKE,
+    EXPR_NUMERIC_LITERAL
+} ExprType;
 
 typedef struct {
-    enum {
-        EXPR_QID,
-        EXPR_INVOKE,
-        EXPR_NUMERIC_LITERAL
-    } type;
+    ExprType type;
     void *expr;
-} AST_Expr;
+} PT_Expr;
 
 typedef struct {
-    void *var;
-    AST_Expr *init;
-} AST_StatVarDecl;
+    VarDeclSignature *var;
+    PT_Expr *init;
+} PT_StatVarDecl;
 
 typedef struct {
-    void *var;
-    AST_Expr *expr;
-} AST_StatVarAssign;
+    char *var;
+    PT_Expr *expr;
+} PT_StatVarAssign;
+
+typedef enum {
+    STAT_INVOKE,
+    STAT_VAR_DECL,
+    STAT_VAR_ASSIGN
+} StatType;
 
 typedef struct {
-    enum {
-        STAT_INVOKE,
-        STAT_VAR_DECL,
-        STAT_VAR_ASSIGN
-    } type;
+    StatType type;
     void *value;
-} AST_Stat;
+} PT_Stat;
 
 typedef struct {
-    void *arg;
-    AST_Expr *expr;
-} AST_FunArg;
+    FunArgSignature *arg;
+    PT_Expr *init;
+} PT_FunArg;
 
 typedef struct {
-    void *fun;
+    FunDefSignature *fun;
     ArrayList *stats;
-} AST_FunDef;
+} PT_FunDef;
+
+typedef enum {
+    PROGRAM_STAT,
+    PROGRAM_FUNDEF
+} ProgramStatType;
 
 typedef struct {
-    enum {
-        PROGRAM_STAT,
-        PROGRAM_FUNDEF
-    } type;
+    ProgramStatType type;
     void *value;
-} AST_ProgramStat;
+} PT_ProgramStat;
 
 typedef struct {
     ArrayList *imports;
     ArrayList *stats;
-} AST_Program;
+} PT_Program;
 
 #endif

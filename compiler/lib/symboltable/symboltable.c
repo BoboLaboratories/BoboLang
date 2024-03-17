@@ -29,8 +29,7 @@
 #include <string.h>
 #include <stdarg.h>
 
-#include "parser/ast.h"
-#include "lang/binary/base.h"
+#include "parser/tree.h"
 #include "lib/symboltable/symboltable.h"
 #include "lib/data/hashtable/hashtable.h"
 
@@ -48,13 +47,13 @@ struct symbol_table {
  *
  * import io.net
  *
- * var k = 1                <-- 0       k       VAR     0
+ * var k = 1                <-- 0       k       SYM_VAR     0
  *
- * fun main(a)              <-- 0       main    FUN     0
- * {                        <-- 1       a       VAR     0
- *      b = 10              <-- 1       b       VAR     1
+ * fun main(a)              <-- 0       main    SYM_FUN     0
+ * {                        <-- 1       a       SYM_VAR     0
+ *      b = 10              <-- 1       b       SYM_VAR     1
  *      {
- *          c = 23          <-- 2       c       VAR     2
+ *          c = 23          <-- 2       c       SYM_VAR     2
  *
  *          k = 50
  *      }
@@ -65,13 +64,13 @@ struct symbol_table {
 #define SCOPE_SEPARATOR '#'
 #define ARITY_SEPARATOR '/'
 
-static char *mk_key(SymbolType type, const char *name, u1 min_arity) {
+static char *mk_key(SymbolType type, const char *name, u1 arity) {
     size_t key_len = 2; /* for SCOPE_SEPARATOR and '\0' */
     size_t index = 0;
     size_t name_len;
 
-    if (type == FUN) {
-        u1 min_args = min_arity; /* TODO */
+    if (type == SYM_FUN) {
+        u1 min_args = arity;
         key_len += (min_args < 100) ? ((min_args < 10) ? 1 : 2) : 3;
         key_len += 1; /* for ARITY_SEPARATOR */
     }
@@ -83,10 +82,10 @@ static char *mk_key(SymbolType type, const char *name, u1 min_arity) {
     key[index++] = SCOPE_SEPARATOR;
     strcpy(&key[index], name);
 
-    if (type == FUN) {
+    if (type == SYM_FUN) {
         index += name_len;
         key[index++] = ARITY_SEPARATOR;
-        sprintf(&key[index], "%hhu", min_arity);
+        sprintf(&key[index], "%hhu", arity);
     }
 
     key[key_len - 1] = '\0';
@@ -100,9 +99,9 @@ static u2 compute_address(SymbolTable *table, SymbolType type, const char *key) 
     }
 
     switch (type) {
-    case VAR:
+    case SYM_VAR:
         return table->var_addr++;
-    case FUN:
+    case SYM_FUN:
         return table->fun_addr++;
     }
 }
@@ -139,18 +138,18 @@ static Symbol *st_get_entry(SymbolTable *table, char *key) {
 }
 
 Symbol *st_get(SymbolTable *table, SymbolType type, ...) {
-    FunctionSignature *sig = NULL;
+    FunDefSignature *sig = NULL;
     char *name = NULL;
     u1 arity = 0;
 
     va_list args;
     va_start(args, type);
     switch (type) {
-    case VAR:
+    case SYM_VAR:
         name = va_arg(args, char *);
         break;
-    case FUN:
-        sig = va_arg(args, FunctionSignature *);
+    case SYM_FUN:
+        sig = va_arg(args, FunDefSignature *);
         name = sig->name;
         arity = sig->args != NULL ? al_size(sig->args) : 0;
         break;
@@ -172,15 +171,15 @@ Symbol *st_set(SymbolTable *table, SymbolType type, ...) {
     va_list args;
     va_start(args, type);
     switch (type) {
-    case VAR:
-        info = va_arg(args, VariableSignature *);
-        name = ((VariableSignature *) info)->name;
+    case SYM_VAR:
+        info = va_arg(args, VarDeclSignature *);
+        name = ((VarDeclSignature *) info)->name;
         break;
-    case FUN:
-        info = va_arg(args, FunctionSignature *);
-        FunctionSignature * fun = info;
+    case SYM_FUN:
+        info = va_arg(args, FunDefSignature *);
+        FunDefSignature * fun = info;
         name = fun->name;
-        arity = fun->args != NULL ? al_size(fun->args) : 0;
+        arity = fun->args != NULL ? fun->min_args_count : 0;
         break;
     }
     va_end(args);
@@ -191,11 +190,11 @@ Symbol *st_set(SymbolTable *table, SymbolType type, ...) {
             .address = compute_address(table, type, key),
             .scope = (table->layer == 0) ? GLOBAL : LOCAL,
             .type = type,
-            .info = info
+            .info = info,
+            .key = key
     };
 
     ht_set(table->ht, key, symbol);
-    free(key);
 
     return symbol;
 }

@@ -1,8 +1,13 @@
-const k = 1
+
+fun k(x, y, z = 0) {
+
+}
 
 fun k(x, y) {
 
 }
+
+
 
 /*
 import a.b.c.d

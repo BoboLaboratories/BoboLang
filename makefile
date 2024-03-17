@@ -5,9 +5,7 @@ override CC = gcc
 # $^ prerequisites
 # $< first prerequisite
 
-MAIN = boboc bobo
-
-all: $(MAIN)
+all: boboc bobo
 
 # Directive for building the compiler
 COMPILER_SHARED_LIBS = console string_utils data/arraylist data/hashtable
