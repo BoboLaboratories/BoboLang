@@ -234,21 +234,21 @@ static Token *scan_id(Lexer *lexer) {
     } else {
         Token *ret;
         if (strcmp(lexeme, "import") == 0) {
-            ret = mktokr(TOK_IMPORT);
+            ret = mktok(TOK_IMPORT);
         } else if (strcmp(lexeme, "fun") == 0) {
-            ret = mktokr(TOK_FUN);
+            ret = mktok(TOK_FUN);
         } else if (strcmp(lexeme, "private") == 0) {
-            ret = mktokr(TOK_PRIVATE);
+            ret = mktok(TOK_PRIVATE);
         } else if (strcmp(lexeme, "native") == 0) {
-            ret = mktokr(TOK_NATIVE);
+            ret = mktok(TOK_NATIVE);
         } else if (strcmp(lexeme, "const") == 0) {
-            ret = mktokr(TOK_CONST);
+            ret = mktok(TOK_CONST);
         } else if (strcmp(lexeme, "var") == 0) {
-            ret = mktokr(TOK_VAR);
+            ret = mktok(TOK_VAR);
         } else if (strcmp(lexeme, "check") == 0) {
-            ret = mktokr(TOK_CHECK);
+            ret = mktok(TOK_CHECK);
         } else {
-            ret = mktoklr(ID, lexeme);
+            ret = mktokl(ID, lexeme);
         }
 
         if (ret->tag != ID) {

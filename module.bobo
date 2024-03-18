@@ -4,9 +4,15 @@ fun main() {
     var tmp = 9
 }
 
+fun foo(x, y, z = 0) {
+
+}
+
 fun foo(x, y) {
 
 }
+
+C compiler -> C VM -> ESAMI -> learning Elixir -> riconcepire BoboLang -> Elixir compiler -> BoboLang compiler
 
 /*
 import a.b.c.d

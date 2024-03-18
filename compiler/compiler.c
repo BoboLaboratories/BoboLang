@@ -52,14 +52,14 @@ static void compile(char *pathname) {
 
     fclose(file);
 
-    Lexer *lexer = init_lexer(&meta);
+    /*Lexer *lexer = init_lexer(&meta);
     Token *token;
     do {
         token = scan(lexer);
         TOK_PRINT(token);
     } while (token->tag != EOP);
 
-    return;
+    return;*/
 
     Translator *translator = init_translator(&meta);
     BinaryModule *module = translate(translator);

@@ -78,9 +78,13 @@ typedef enum {
  * Parse tree nodes
  */
 
+#define LINE_META   char *begin; \
+                    char *end;
+
 typedef struct {
     char *fun;
     ArrayList *args;
+    LINE_META;
 } PT_Invoke;
 
 typedef struct {
@@ -91,11 +95,13 @@ typedef struct {
 typedef struct {
     VarDeclSignature *var;
     PT_Expr *init;
+    LINE_META;
 } PT_StatVarDecl;
 
 typedef struct {
     char *var;
     PT_Expr *expr;
+    LINE_META;
 } PT_StatVarAssign;
 
 typedef struct {

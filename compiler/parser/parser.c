@@ -66,7 +66,7 @@ static void move(Parser *p) {
 
 static void match(Parser *p, int tag) {
     if (p->curr->tag == tag) {
-        if (p->curr->tag != EOF) {
+        if (p->curr->tag != EOP) {
             move(p);
         }
     } else {
@@ -113,7 +113,7 @@ static char *qidp(Parser *p, char *id) {
     case NATIVE:
     case COMMA:
     case CONST:
-    case EOF:
+    case EOP:
     case FUN:
     case LPT:
     case RPT:
@@ -229,7 +229,7 @@ static PT_Expr *qidexprp(Parser *p, char *qid) {
     case NATIVE:
     case COMMA:
     case CONST:
-    case EOF:
+    case EOP:
     case FUN:
     case RPG:
     case RPT:
@@ -282,7 +282,7 @@ static PT_Expr *statvardeclp(Parser *p) {
     case PRIVATE:
     case NATIVE:
     case CONST:
-    case EOF:
+    case EOP:
     case FUN:
     case RPG:
     case VAR:
@@ -560,7 +560,7 @@ static void filep(Parser *p) {
         ast_add(p->program->stats, node, ERR_PROGRAM_TOO_BIG);
         filep(p);
         break;
-    case EOF:
+    case EOP:
         free(node);
         break;
     default:
@@ -580,7 +580,7 @@ static void importlist(Parser *p) {
     case PRIVATE:
     case NATIVE:
     case CONST:
-    case EOF:
+    case EOP:
     case FUN:
     case VAR:
     case ID:
@@ -597,13 +597,13 @@ static void file(Parser *p) {
     case NATIVE:
     case IMPORT:
     case CONST:
-    case EOF:
+    case EOP:
     case FUN:
     case VAR:
     case ID:
         importlist(p);
         filep(p);
-        match(p, EOF);
+        match(p, EOP);
         break;
     default:
         fprintf(stderr, "file");
@@ -634,6 +634,6 @@ PT_Program *parse(Parser *p) {
     free(p->prev);
     free(p->curr);
     free(p);
-
+    
     return program;
 }

@@ -33,7 +33,6 @@ typedef struct {
     char *lexeme;
     unsigned int line;
     unsigned long begin;
-    unsigned short length;
 } Token;
 
 #define TOK_PRINT(tok)  do {                                                                        \
