@@ -32,12 +32,13 @@
 #include "lexer/lexer.h"
 #include "numeric_literal.h"
 
-static token *accept(Lexer *lexer) {
+static Token *accept(Lexer *lexer) {
     return mktokl(NUM, get_buffer(lexer));
 }
 
 static void reject(Lexer *lexer) {
-    lexer_err(lexer, "bad number format\n");
+    error(lexer->meta, lexer->line, "bad number format\n");
+    exit(EXIT_FAILURE);
 }
 
 static bool can_terminate(char c) {
@@ -48,7 +49,7 @@ static bool can_terminate(char c) {
            || c == RPG;
 }
 
-token *scan_numeric_literal(Lexer *lexer, NumericLiteralState state) {
+Token *scan_numeric_literal(Lexer *lexer, NumericLiteralState state) {
     start_buffering(lexer);
 
     while (1) {

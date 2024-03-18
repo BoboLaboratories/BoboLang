@@ -28,8 +28,13 @@
 #ifndef BOBO_LANG_COMPILER_META_H
 #define BOBO_LANG_COMPILER_META_H
 
+#include "lib/data/arraylist/arraylist.h"
+
 typedef struct {
-    char *pathname;
+    const char *pathname;
+    char *code;
+    long code_size;
+    ArrayList* line_info;
 } Meta;
 
 #endif

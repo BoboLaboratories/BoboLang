@@ -36,7 +36,7 @@
 typedef struct lexer Lexer;
 
 Lexer *init_lexer(Meta *meta);
-token *scan(Lexer *lexer);
+Token *scan(Lexer *lexer);
 void free_lexer(Lexer *lexer);
 
 

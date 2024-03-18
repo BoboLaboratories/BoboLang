@@ -42,8 +42,8 @@
 
 struct parser {
     Lexer *lexer;
-    token *prev;
-    token *curr;
+    Token *prev;
+    Token *curr;
     PT_Program *program;
 };
 
@@ -60,6 +60,7 @@ static void move(Parser *p) {
     }
     p->prev = p->curr;
     p->curr = scan(p->lexer);
+
     TOK_PRINT(p->curr);
 }
 
@@ -69,9 +70,9 @@ static void match(Parser *p, int tag) {
             move(p);
         }
     } else {
-        print(E, "--- unexpected token, expected %d\n", tag);
+        fprintf(stderr, "--- unexpected Token, expected %d\n", tag);
         TOK_PRINT(p->curr);
-        print(E, "---");
+        fprintf(stderr, "---");
     }
 }
 
@@ -82,9 +83,9 @@ static void match(Parser *p, int tag) {
 static void ast_add(ArrayList *list, void *node, char *errmsg) {
     if (!al_add(list, node)) {
         if (errno == ENOMEM) {
-            print(E, "Insufficient memory in the system\n");
+            fprintf(stderr, "Insufficient memory in the system\n");
         } else {
-            print(E, "%s\n", errmsg);
+            fprintf(stderr, "%s\n", errmsg);
         }
         abort();
     }
@@ -98,7 +99,7 @@ static char *qidp(Parser *p, char *id) {
         size_t size = strlen(id) + 1 /* for . */ + strlen(p->prev->lexeme) + 1 /* for \0 */;
         char *tmp = realloc(id, size);
         if (tmp == NULL) {
-            print(E, "Could not allocate more memory\n");
+            fprintf(stderr, "Could not allocate more memory\n");
             exit(EXIT_FAILURE);
         }
         id = tmp;
@@ -121,7 +122,7 @@ static char *qidp(Parser *p, char *id) {
     case ID:
         return id;
     default:
-        print(E, "qidp");
+        fprintf(stderr, "qidp");
         exit(EXIT_FAILURE);
     }
 }
@@ -133,7 +134,7 @@ static char *qid(Parser *p) {
         char *id = strdup(p->prev->lexeme);
         return qidp(p, id);
     default:
-        print(E, "var");
+        fprintf(stderr, "var");
         exit(EXIT_FAILURE);
     }
 }
@@ -150,7 +151,7 @@ static PT_Expr *literal(Parser *p) {
         *((double *) node->expr) = dbl;
         return node;
     default:
-        print(E, "literal\n");
+        fprintf(stderr, "literal\n");
         exit(EXIT_FAILURE);
     }
 }
@@ -164,7 +165,7 @@ static PT_Expr *expr(Parser *p) {
     case NUM:
         return literal(p);
     default:
-        print(E, "expr");
+        fprintf(stderr, "expr");
         exit(EXIT_FAILURE);
     }
 }
@@ -179,7 +180,7 @@ static void invokearglistp(Parser *p, ArrayList *args) {
     case RPT:
         break;
     default:
-        print(E, "invokearglistp");
+        fprintf(stderr, "invokearglistp");
         exit(EXIT_FAILURE);
     }
 }
@@ -196,7 +197,7 @@ static ArrayList *invokearglist(Parser *p) {
     case RPT:
         return NULL;
     default:
-        print(E, "invokearglist");
+        fprintf(stderr, "invokearglist");
         exit(EXIT_FAILURE);
     }
 }
@@ -209,7 +210,7 @@ static ArrayList *invokeargs(Parser *p) {
         match(p, RPT);
         return args;
     default:
-        print(E, "invokeargs");
+        fprintf(stderr, "invokeargs");
         exit(EXIT_FAILURE);
     }
 }
@@ -238,7 +239,7 @@ static PT_Expr *qidexprp(Parser *p, char *qid) {
         node->expr = qid;
         return node;
     default:
-        print(E, "qidexprp");
+        fprintf(stderr, "qidexprp");
         exit(EXIT_FAILURE);
     }
 }
@@ -249,7 +250,7 @@ static PT_Expr *assign(Parser *p) {
         match(p, ASSIGN);
         return expr(p);
     default:
-        print(E, "assign");
+        fprintf(stderr, "assign");
         exit(EXIT_FAILURE);
     }
 }
@@ -269,7 +270,7 @@ static void qidstatp(Parser *p, char *qid, PT_Stat *node) {
         invokeargs(p);
         break;
     default:
-        print(E, "qidstatp");
+        fprintf(stderr, "qidstatp");
         exit(EXIT_FAILURE);
     }
 }
@@ -288,7 +289,7 @@ static PT_Expr *statvardeclp(Parser *p) {
     case ID:
         return NULL;
     default:
-        print(E, "statvardeclp");
+        fprintf(stderr, "statvardeclp");
         exit(EXIT_FAILURE);
     }
 }
@@ -315,7 +316,7 @@ static PT_StatVarDecl *statvardecl(Parser *p) {
         node->init = statvardeclp(p);
         return node;
     default:
-        print(E, "statvardecl");
+        fprintf(stderr, "statvardecl");
         exit(EXIT_FAILURE);
     }
 }
@@ -335,7 +336,7 @@ static PT_Stat *stat(Parser *p) {
         return node;
     }
     default:
-        print(E, "value");
+        fprintf(stderr, "value");
         exit(EXIT_FAILURE);
     }
 }
@@ -357,7 +358,7 @@ static void statlistp(Parser *p, PT_FunDef *fun) {
     case RPG:
         break;
     default:
-        print(E, "statlistp");
+        fprintf(stderr, "statlistp");
         exit(EXIT_FAILURE);
     }
 }
@@ -370,7 +371,7 @@ static void statlist(Parser *p, PT_FunDef *fun) {
         match(p, RPG);
         break;
     default:
-        print(E, "statlist");
+        fprintf(stderr, "statlist");
         exit(EXIT_FAILURE);
     }
 }
@@ -391,7 +392,7 @@ static PT_FunArg *funarg(Parser *p) {
         return node;
     }
     default:
-        print(E, "funarg");
+        fprintf(stderr, "funarg");
         exit(EXIT_FAILURE);
     }
 }
@@ -408,7 +409,7 @@ static void fundefarglistp(Parser *p, PT_FunDef *node) {
     case RPT:
         break;
     default:
-        print(E, "fundefarglistp");
+        fprintf(stderr, "fundefarglistp");
         exit(EXIT_FAILURE);
     }
 }
@@ -433,7 +434,7 @@ static void funarglistp(Parser *p, PT_FunDef *node, PT_FunArg *arg) {
         fun->min_args_count++;
         break;
     default:
-        print(E, "funarglistp");
+        fprintf(stderr, "funarglistp");
         exit(EXIT_FAILURE);
     }
 }
@@ -450,7 +451,7 @@ static void funarglist(Parser *p, PT_FunDef *node) {
     case RPT:
         break;
     default:
-        print(E, "funarglist");
+        fprintf(stderr, "funarglist");
         exit(EXIT_FAILURE);
     }
 }
@@ -475,7 +476,7 @@ static PT_FunDef *funsig(Parser *p) {
         match(p, RPT);
         return node;
     default:
-        print(E, "funsig");
+        fprintf(stderr, "funsig");
         exit(EXIT_FAILURE);
     }
 }
@@ -488,7 +489,7 @@ static PT_FunDef *fundef(Parser *p) {
         return node;
     }
     default:
-        print(E, "fundef");
+        fprintf(stderr, "fundef");
         exit(EXIT_FAILURE);
     }
 }
@@ -501,7 +502,7 @@ static PT_FunDef *nativefundef(Parser *p) {
         node->fun->is_native = true;
         return node;
     default:
-        print(E, "nativefundef");
+        fprintf(stderr, "nativefundef");
         exit(EXIT_FAILURE);
     }
 }
@@ -529,7 +530,7 @@ static void privatefilep(Parser *p, PT_ProgramStat *node) {
         ((FunDefSignature *) ((PT_FunDef *) node->value)->fun)->is_private = true;
         break;
     default:
-        print(E, "privatefilep");
+        fprintf(stderr, "privatefilep");
         exit(EXIT_FAILURE);
     }
 }
@@ -563,7 +564,7 @@ static void filep(Parser *p) {
         free(node);
         break;
     default:
-        print(E, "filep");
+        fprintf(stderr, "filep");
         exit(EXIT_FAILURE);
     }
 }
@@ -585,7 +586,7 @@ static void importlist(Parser *p) {
     case ID:
         break;
     default:
-        print(E, "importlist");
+        fprintf(stderr, "importlist");
         exit(EXIT_FAILURE);
     }
 }
@@ -605,7 +606,7 @@ static void file(Parser *p) {
         match(p, EOF);
         break;
     default:
-        print(E, "file");
+        fprintf(stderr, "file");
         exit(EXIT_FAILURE);
     }
 }
@@ -614,8 +615,8 @@ Parser *init_parser(Lexer *lexer) {
     Parser *p = malloc(sizeof(Parser));
 
     p->lexer = lexer;
-    p->prev = malloc(sizeof(token));
-    p->curr = malloc(sizeof(token));
+    p->prev = malloc(sizeof(Token));
+    p->curr = malloc(sizeof(Token));
 
     p->program = malloc(sizeof(PT_Program));
     p->program->imports = al_create(MAX_OF(u4));

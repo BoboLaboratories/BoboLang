@@ -26,8 +26,10 @@
  */
 
 #include <stdio.h>
+#include <malloc.h>
 
 #include "meta.h"
+#include "lexer/lexer.h"
 #include "lang/binary/module.h"
 #include "translator/translator.h"
 
@@ -36,6 +38,28 @@ static void compile(char *pathname) {
     Meta meta = {
             .pathname = pathname
     };
+
+    FILE *file = fopen(pathname, "rb");
+
+    fseek(file, 0L, SEEK_END);
+    meta.code_size = ftell(file);
+    rewind(file);
+
+
+    meta.code = malloc(meta.code_size + 1);
+    size_t bytes_read = fread(meta.code, sizeof(char), meta.code_size, file);
+    meta.code[bytes_read] = '\0';
+
+    fclose(file);
+
+    Lexer *lexer = init_lexer(&meta);
+    Token *token;
+    do {
+        token = scan(lexer);
+        TOK_PRINT(token);
+    } while (token->tag != EOP);
+
+    return;
 
     Translator *translator = init_translator(&meta);
     BinaryModule *module = translate(translator);

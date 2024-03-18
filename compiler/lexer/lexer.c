@@ -30,64 +30,56 @@
 #include <stdlib.h>
 #include <string.h>
 #include <malloc.h>
+#include <limits.h>
 
 #include "common.h"
 #include "numeric_literal.h"
-#include "lib/console/console.h"
-
-#define LEXER_RESET '\0'
 
 static void single_line_comment(Lexer *lexer);
 
 static void multi_line_comment(Lexer *lexer);
 
-static token *scan_id(Lexer *lexer);
+static Token *scan_id(Lexer *lexer);
 
 static int is_new_line(char c);
 
 Lexer *init_lexer(Meta *meta) {
     Lexer *lexer = malloc(sizeof(Lexer));
 
-    lexer->fptr = fopen(meta->pathname, "r");
     lexer->meta = meta;
-    lexer->buf_start = -1;
-    lexer->line = 1;
-    lexer->column = 1;
-    reset(lexer);
+    lexer->line = lexer->column = 1;
+    lexer->peek = lexer->buf = (char *) meta->code;
+
+    meta->line_info = al_create(ULONG_MAX);
+    al_add(meta->line_info, lexer->peek);
 
     return lexer;
 }
 
 void reset(Lexer *lexer) {
-    lexer->peek = LEXER_RESET;
+    lexer->peek++;
 }
 
 char next(Lexer *lexer) {
-    if (lexer->peek != LEXER_RESET) {
+    if (*lexer->peek == '\n') {
+        al_add(lexer->meta->line_info, lexer->peek + 1);
+        lexer->column = 1;
+        lexer->line++;
+    } else {
         lexer->column++;
     }
 
-    if (lexer->peek == '\n') {
-        lexer->line_start = ftell(lexer->fptr);
-        lexer->column = 1;
-        lexer->line++;
-    }
+    lexer->peek++;
 
-    lexer->peek = (char) fgetc(lexer->fptr);
-
-    return lexer->peek;
+    return *lexer->peek;
 }
 
-token *scan(Lexer *lexer) {
-    if (lexer->peek == LEXER_RESET) {
+Token *scan(Lexer *lexer) {
+    while (is_whitespace(*lexer->peek)) {
         next(lexer);
     }
 
-    while (is_whitespace(lexer->peek)) {
-        next(lexer);
-    }
-
-    switch (lexer->peek) {
+    switch (*lexer->peek) {
     case '(':
         return mktokr(TOK_LPT);
     case ')':
@@ -97,13 +89,13 @@ token *scan(Lexer *lexer) {
     case '}':
         return mktokr(TOK_RPG);
     case '.': {
-        token *numeric_literal = scan_numeric_literal(lexer, IMPLICIT_INTEGER_PART);
+        Token *numeric_literal = scan_numeric_literal(lexer, IMPLICIT_INTEGER_PART);
         return numeric_literal != NULL ? numeric_literal : mktok(TOK_DOT);
     }
     case '*':
         return mktokr(TOK_MUL);
     case '+': {
-        token *numeric_literal = scan_numeric_literal(lexer, INTEGER_SIGN);
+        Token *numeric_literal = scan_numeric_literal(lexer, INTEGER_SIGN);
         return numeric_literal != NULL ? numeric_literal : mktok(TOK_PLUS);
     }
     case '/':
@@ -128,7 +120,7 @@ token *scan(Lexer *lexer) {
     case '=':
         return (next(lexer) == '=') ? mktokr(TOK_EQ) : mktok(TOK_ASSIGN);
     case '-': {
-        token *numeric_literal = scan_numeric_literal(lexer, INTEGER_SIGN);
+        Token *numeric_literal = scan_numeric_literal(lexer, INTEGER_SIGN);
         if (numeric_literal != NULL) {
             return numeric_literal;
         } else {
@@ -137,114 +129,110 @@ token *scan(Lexer *lexer) {
     }
     case '&':
         if (next(lexer) != '&') {
-            print(E, "illegal symbol &%c at line %d\n", lexer->peek, lexer->line);
+            error(lexer->meta, lexer->line, "illegal symbol &%c\n", *lexer->peek);
             exit(EXIT_FAILURE);
         }
         return mktokr(TOK_AND);
     case '|':
         if (next(lexer) != '|') {
-            print(E, "illegal symbol |%c at line %d\n", lexer->peek, lexer->line);
+            error(lexer->meta, lexer->line, "illegal symbol |%c\n", *lexer->peek);
             exit(EXIT_FAILURE);
         }
         return mktokr(TOK_OR);
-    case EOF:
-        return mktokl(EOF, NULL);
+    case EOP:
+        return mktokl(EOP, NULL);
     default:
-        if (isalpha(lexer->peek) || lexer->peek == '_') {
+        if (isalpha(*lexer->peek) || *lexer->peek == '_') {
             return scan_id(lexer);
-        } else if (isdigit(lexer->peek)) {
-            token *tok = scan_numeric_literal(lexer, INTEGER_PART);
+        } else if (isdigit(*lexer->peek)) {
+            Token *tok = scan_numeric_literal(lexer, INTEGER_PART);
             if (tok != NULL) {
-                reset(lexer);
                 return tok;
             }
         }
 
-        print(E, "erroneous symbol %c at line %d\n", lexer->peek, lexer->line);
+        error(lexer->meta, lexer->line, "illegal symbol %c\n", *lexer->peek);
         exit(EXIT_FAILURE);
     }
 }
 
 void start_buffering(Lexer *lexer) {
-    lexer->buf_start = ftell(lexer->fptr) - 1;
+    lexer->buf = lexer->peek;
 }
 
 char *get_buffer(Lexer *lexer) {
-    if (lexer->buf_start == -1) {
-        print(E, "Never started buffering\n");
-        abort();
+    if (lexer->buf == NULL) {
+        return NULL;
     }
 
-    long end = ftell(lexer->fptr);
-    if (lexer->peek != EOF) {
-        end--;
-    }
-    long len = end - lexer->buf_start;
+    char *end = lexer->peek;
+
+    size_t len = end - lexer->buf;
     char *lexeme = malloc(len + 1);
-
-    fseek(lexer->fptr, lexer->buf_start, SEEK_SET);
-    fread(lexeme, len, 1, lexer->fptr);
+    memcpy(lexeme, lexer->buf, len + 1);
     *(lexeme + len) = '\0';
 
-    lexer->buf_start = -1;
+    lexer->buf = NULL;
 
     return lexeme;
 }
 
 void free_lexer(Lexer *lexer) {
-    fclose(lexer->fptr);
     free(lexer);
 }
 
 static void single_line_comment(Lexer *lexer) {
+    char c;
     do {
-        next(lexer);
-    } while (lexer->peek != '\n' && lexer->peek != EOF);
+        c = next(lexer);
+    } while (c != '\n' && c != EOF);
 }
 
 static void multi_line_comment(Lexer *lexer) {
     unsigned int line = lexer->line;
     int state = 0;
 
+    char c;
     do {
-        next(lexer);
+        c = next(lexer);
         if (state == 0) {
-            if (lexer->peek == '*') {
+            if (c == '*') {
                 state = 1;
             }
         } else {
-            if (lexer->peek == '/') {
+            if (c == '/') {
                 state = 2;
-            } else if (lexer->peek != '*') {
+            } else if (c != '*') {
                 state = 0;
             }
         }
-    } while (state != 2 && lexer->peek != EOF);
+    } while (state != 2 && c != EOF);
 
     if (state == 2) {
-        lexer->peek = ' ';
+        reset(lexer);
     } else {
-        print(E, "unclosed multi line comment starting at line %d\n", line);
+        error(lexer->meta, line, "unclosed multi line comment starting at line %d\n", line);
         exit(EXIT_FAILURE);
     }
 }
 
-static token *scan_id(Lexer *lexer) {
+static Token *scan_id(Lexer *lexer) {
     start_buffering(lexer);
 
-    int underscore_only = lexer->peek == '_';
+    char c = *lexer->peek;
+    int underscore_only = c == '_';
     do {
-        underscore_only &= lexer->peek == '_';
-        next(lexer);
-    } while (isalnum(lexer->peek) || lexer->peek == '_');
+        underscore_only &= c == '_';
+        c = next(lexer);
+    } while (isalnum(c) || c == '_');
 
     char *lexeme = get_buffer(lexer);
 
     if (underscore_only) {
-        print(E, "illegal symbol %s at line %d\n", lexeme, lexer->line);
+        error(lexer->meta, lexer->line, "illegal symbol %s\n", lexeme);
         exit(EXIT_FAILURE);
     } else {
-        token *ret;
+        Token *ret;
         if (strcmp(lexeme, "import") == 0) {
             ret = mktokr(TOK_IMPORT);
         } else if (strcmp(lexeme, "fun") == 0) {
@@ -279,12 +267,12 @@ static int is_new_line(char c) {
     return c == '\n' || c == '\r';
 }
 
-token *make_token(Lexer *lexer, int tag, char *lexeme, bool is_reset) {
+Token *make_token(Lexer *lexer, int tag, char *lexeme, bool is_reset) {
     if (is_reset) {
         reset(lexer);
     }
 
-    token *tok = malloc(sizeof(token));
+    Token *tok = malloc(sizeof(Token));
     tok->line = lexer->line;
     tok->lexeme = lexeme;
     tok->tag = tag;
@@ -292,7 +280,7 @@ token *make_token(Lexer *lexer, int tag, char *lexeme, bool is_reset) {
     return tok;
 }
 
-void lexer_err(Lexer *lexer, char *msg) {
+/*void lexer_err(Lexer *lexer, char *msg) {
     unsigned int i;
     unsigned int err_column = lexer->column;
     if (err_column > 0) {
@@ -319,4 +307,4 @@ void lexer_err(Lexer *lexer, char *msg) {
     printf("^\n");
 
     exit(EXIT_FAILURE);
-}
+}*/

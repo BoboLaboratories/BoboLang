@@ -72,23 +72,7 @@ static void pass1_stat(SemanticAnalyzer *a, PT_Stat *node) {
 }
 
 static bool is_fun_sig_equal(FunDefSignature *a, FunDefSignature *b) {
-    /*if (a == NULL || b == NULL) {
-        return false;
-    }*/
-
-    if (strcmp(a->name, b->name) != 0) {
-        return false;
-    }
-
-    /*if ((a->args == NULL && b->args != NULL) || (a->args != NULL && b->args == NULL)) {
-        return false;
-    }
-
-    if (a->args == NULL) {
-        return true;
-    }*/
-
-    return a->min_args_count == b->min_args_count;
+    return (strcmp(a->name, b->name) == 0) && (a->min_args_count == b->min_args_count);
 }
 
 static void pass1_fun_def(SemanticAnalyzer *a, PT_FunDef *node) {

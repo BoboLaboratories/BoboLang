@@ -1,13 +1,12 @@
+const k = 0
 
-fun k(x, y, z = 0) {
-
+fun main() {
+    var tmp = 9
 }
 
-fun k(x, y) {
+fun foo(x, y) {
 
 }
-
-
 
 /*
 import a.b.c.d

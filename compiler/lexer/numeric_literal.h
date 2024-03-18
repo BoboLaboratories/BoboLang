@@ -38,6 +38,6 @@ typedef enum {
     EXPONENT_PART
 } NumericLiteralState;
 
-token *scan_numeric_literal(Lexer *lexer, NumericLiteralState state);
+Token *scan_numeric_literal(Lexer *lexer, NumericLiteralState state);
 
 #endif

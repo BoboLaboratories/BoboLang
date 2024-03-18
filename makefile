@@ -8,7 +8,7 @@ override CC = gcc
 all: boboc bobo
 
 # Directive for building the compiler
-COMPILER_SHARED_LIBS = console string_utils data/arraylist data/hashtable
+COMPILER_SHARED_LIBS = string_utils data/arraylist data/hashtable
 COMPILER_SHARED_LIBS_PATHS = $(addprefix bin/lib/,$(COMPILER_SHARED_LIBS))
 COMPILER_SOURCES := $(shell find compiler -type f \( -iname \*.c -o -iname \*.h \))
 boboc: $(COMPILER_SOURCES) $(COMPILER_SHARED_LIBS_PATHS)

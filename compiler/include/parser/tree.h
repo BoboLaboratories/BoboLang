@@ -56,20 +56,32 @@ typedef struct {
     ArrayList *args;
 } FunDefSignature;
 
-
-/*
- * Parse tree nodes
- */
-typedef struct {
-    char *fun;
-    ArrayList *args;
-} PT_Invoke;
-
 typedef enum {
     EXPR_QID,
     EXPR_INVOKE,
     EXPR_NUMERIC_LITERAL
 } ExprType;
+
+typedef enum {
+    STAT_INVOKE,
+    STAT_VAR_DECL,
+    STAT_VAR_ASSIGN
+} StatType;
+
+typedef enum {
+    PROGRAM_STAT,
+    PROGRAM_FUNDEF
+} ProgramStatType;
+
+
+/*
+ * Parse tree nodes
+ */
+
+typedef struct {
+    char *fun;
+    ArrayList *args;
+} PT_Invoke;
 
 typedef struct {
     ExprType type;
@@ -86,12 +98,6 @@ typedef struct {
     PT_Expr *expr;
 } PT_StatVarAssign;
 
-typedef enum {
-    STAT_INVOKE,
-    STAT_VAR_DECL,
-    STAT_VAR_ASSIGN
-} StatType;
-
 typedef struct {
     StatType type;
     void *value;
@@ -106,11 +112,6 @@ typedef struct {
     FunDefSignature *fun;
     ArrayList *stats;
 } PT_FunDef;
-
-typedef enum {
-    PROGRAM_STAT,
-    PROGRAM_FUNDEF
-} ProgramStatType;
 
 typedef struct {
     ProgramStatType type;

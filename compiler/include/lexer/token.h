@@ -32,16 +32,18 @@ typedef struct {
     int tag;
     char *lexeme;
     unsigned int line;
-} token;
+    unsigned long begin;
+    unsigned short length;
+} Token;
 
-#define TOK_PRINT(tok)  do {                                                        \
-                            if (tok != NULL) {                                      \
-                                if (tok->tag == EOF) {                              \
-                                    print(N, "<EOF>\n");                            \
-                                } else {                                            \
-                                    print(N, "<%d, %d, %s>\n", tok->line, tok->tag, tok->lexeme);  \
-                                }                                                   \
-                            }                                                       \
+#define TOK_PRINT(tok)  do {                                                                        \
+                            if (tok != NULL) {                                                      \
+                                if (tok->tag == EOP) {                                              \
+                                    printf("<EOP>\n");                                            \
+                                } else {                                                            \
+                                    printf("<%d, %d, %s>\n", tok->line, tok->tag, tok->lexeme);   \
+                                }                                                                   \
+                            }                                                                       \
                         } while(0)
 
 /* constant tokens mapped to extended ASCII */
@@ -59,6 +61,7 @@ typedef struct {
 #define MUL    '*'
 #define DIV    '/'
 #define ASSIGN '='
+#define EOP    '\0' /* special token End Of Program */
 
 #define TOK_LPT     LPT,    "("
 #define TOK_RPT     RPT,    ")"
@@ -90,7 +93,7 @@ typedef struct {
 #define CONST   267
 #define VAR     268
 #define CHECK   269
-#define ID      270     /* begin special tokens ids */
+#define ID      270     /* begin tokens with dynamic lexeme */
 #define NUM     271
 
 #define TOK_ARROW   ARROW,   "->"

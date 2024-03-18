@@ -33,34 +33,33 @@
 #include "meta.h"
 #include "lexer/token.h"
 #include "lexer/lexer.h"
+#include "lib/console/console.h"
 
 struct lexer {
     Meta *meta;
-    FILE *fptr;
-    char peek;
-    long buf_start;
-    long line_start;
-    unsigned int line;
-    unsigned int column;
+    char *buf;
+    char *peek;
+    unsigned long line;
+    unsigned long column;
 };
 
-/* make token with well known lexeme */
+/* make Token with well known lexeme */
 #define mktok(tok)              make_token(lexer, tok, false)
 
-/* make token with well known lexeme and reset peek */
+/* make Token with well known lexeme and reset peek */
 #define mktokr(tok)             make_token(lexer, tok, true)
 
-/* make token with the given tag and lexeme */
+/* make Token with the given tag and lexeme */
 #define mktokl(tag, lexeme)     make_token(lexer, tag, lexeme, false)
 
-/* make token with the given tag and lexeme and reset peek */
+/* make Token with the given tag and lexeme and reset peek */
 #define mktoklr(tag, lexeme)    make_token(lexer, tag, lexeme, true)
 
 void reset(Lexer *lexer);
 
 char next(Lexer * lexer);
 
-token *make_token(Lexer *lexer, int tag, char *lexeme, bool reset);
+Token *make_token(Lexer *lexer, int tag, char *lexeme, bool reset);
 
 void start_buffering(Lexer *lexer);
 
